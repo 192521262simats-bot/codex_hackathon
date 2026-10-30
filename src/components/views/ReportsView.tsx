@@ -32,9 +32,14 @@ export const ReportsView: React.FC = () => {
   const inventoryShortageCount = disruptions.filter((d) => d.type === 'Inventory Shortage').length;
   const carrierDisruptionCount = disruptions.filter((d) => d.type === 'Carrier Disruption' || d.type === 'Port Congestion').length;
 
-  const avgSupplierReliability = (
-    suppliers.reduce((sum, s) => sum + s.reliabilityScore, 0) / suppliers.length
-  ).toFixed(1);
+  const avgSupplierReliability = suppliers.length > 0
+    ? (suppliers.reduce((sum, s) => sum + s.reliabilityScore, 0) / suppliers.length).toFixed(1)
+    : '0.0';
+
+  const closedPlans = recoveryPlans.filter((p) => p.status === 'Executed' || p.status === 'Rejected');
+  const recoverySuccess = closedPlans.length > 0
+    ? ((recoveryPlans.filter((p) => p.status === 'Executed').length / closedPlans.length) * 100).toFixed(1)
+    : '0.0';
 
   // Export summary report
   const handleExportSummaryCSV = () => {
@@ -124,7 +129,7 @@ export const ReportsView: React.FC = () => {
 
         <div className="bg-white p-3.5 rounded-lg border border-slate-200">
           <div className="text-slate-500 text-[11px]">Recovery Success</div>
-          <div className="text-xl font-bold font-mono text-emerald-600 mt-1">95.6%</div>
+          <div className="text-xl font-bold font-mono text-emerald-600 mt-1">{recoverySuccess}%</div>
         </div>
 
         <div className="bg-white p-3.5 rounded-lg border border-slate-200">
@@ -144,35 +149,39 @@ export const ReportsView: React.FC = () => {
             <div className="flex items-center justify-center py-4">
               <svg className="w-40 h-40 transform -rotate-90">
                 <circle cx="80" cy="80" r="60" stroke="#f1f5f9" strokeWidth="20" fill="none" />
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="60"
-                  stroke="#10b981"
-                  strokeWidth="20"
-                  strokeDasharray={`${(deliveredShipments / totalShipments) * 377} 377`}
-                  fill="none"
-                />
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="60"
-                  stroke="#2563eb"
-                  strokeWidth="20"
-                  strokeDashoffset={`-${(deliveredShipments / totalShipments) * 377}`}
-                  strokeDasharray={`${(inTransitShipments / totalShipments) * 377} 377`}
-                  fill="none"
-                />
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="60"
-                  stroke="#ef4444"
-                  strokeWidth="20"
-                  strokeDashoffset={`-${((deliveredShipments + inTransitShipments) / totalShipments) * 377}`}
-                  strokeDasharray={`${(delayedShipments / totalShipments) * 377} 377`}
-                  fill="none"
-                />
+                {totalShipments > 0 && (
+                  <>
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="60"
+                      stroke="#10b981"
+                      strokeWidth="20"
+                      strokeDasharray={`${(deliveredShipments / totalShipments) * 377} 377`}
+                      fill="none"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="60"
+                      stroke="#2563eb"
+                      strokeWidth="20"
+                      strokeDashoffset={`-${(deliveredShipments / totalShipments) * 377}`}
+                      strokeDasharray={`${(inTransitShipments / totalShipments) * 377} 377`}
+                      fill="none"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="60"
+                      stroke="#ef4444"
+                      strokeWidth="20"
+                      strokeDashoffset={`-${((deliveredShipments + inTransitShipments) / totalShipments) * 377}`}
+                      strokeDasharray={`${(delayedShipments / totalShipments) * 377} 377`}
+                      fill="none"
+                    />
+                  </>
+                )}
               </svg>
             </div>
 

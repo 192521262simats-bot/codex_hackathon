@@ -31,8 +31,9 @@ import {
   INITIAL_AUDIT_LOGS,
   computeStockStatus,
 } from '../data/initialData';
+import { ingestCustomData, persistIngestedRecords } from '../lib/dataIngestion';
 
-const STORAGE_KEY = 'rippleguard_ai_state_v1';
+const STORAGE_KEY = 'rippleguard_ai_state_v2';
 
 export interface SimulationResult {
   strategy: string;
@@ -65,6 +66,7 @@ interface AppContextType {
   dataProvenance: DataProvenance;
   currentTab: string;
   activeDisruptionId: string | null;
+  isLoadingDb: boolean;
 
   // Actions
   setCurrentTab: (tab: string) => void;
@@ -91,7 +93,10 @@ interface AppContextType {
   generateRecoveryPlanForDisruption: (disruptionId: string) => RecoveryPlan | null;
   runWhatIfSimulation: (disruptionId?: string) => SimulationResult[];
 
-  // Entity Management
+  // Entity Management & Custom Additions
+  addOrder: (order: Partial<CustomerOrder>) => Promise<void>;
+  addSupplier: (supplier: Partial<Supplier>) => Promise<void>;
+  addProduct: (product: Partial<Product>) => Promise<void>;
   addShipment: (shipment: Omit<Shipment, 'id' | 'shipmentNumber' | 'isOverdue'>) => void;
   updateShipment: (id: string, updates: Partial<Shipment>) => void;
   updateStock: (inventoryId: string, availableQty: number, reservedQty: number) => void;
@@ -105,6 +110,12 @@ interface AppContextType {
   loadScenarioA: () => void;
   loadScenarioB: () => void;
   resetToDefaultData: () => void;
+  clearAllData: () => Promise<void>;
+  ingestDataset: (
+    data: any[],
+    tableHint?: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products',
+    sourceName?: string
+  ) => Promise<{ success: boolean; count: number; table: string; errors: string[] }>;
   importRecords: (
     entityType: 'orders' | 'shipments' | 'inventory' | 'suppliers',
     data: any[],
@@ -117,89 +128,153 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Load state from localStorage or initial dataset
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_suppliers`);
-    return saved ? JSON.parse(saved) : INITIAL_SUPPLIERS;
-  });
-
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_warehouses`);
-    return saved ? JSON.parse(saved) : INITIAL_WAREHOUSES;
-  });
-
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_products`);
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_inventory`);
-    return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
-  });
-
-  const [carriers, setCarriers] = useState<Carrier[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_carriers`);
-    return saved ? JSON.parse(saved) : INITIAL_CARRIERS;
-  });
-
-  const [shipments, setShipments] = useState<Shipment[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_shipments`);
-    return saved ? JSON.parse(saved) : INITIAL_SHIPMENTS;
-  });
-
-  const [orders, setOrders] = useState<CustomerOrder[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_orders`);
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-  });
-
-  const [disruptions, setDisruptions] = useState<Disruption[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_disruptions`);
-    return saved ? JSON.parse(saved) : INITIAL_DISRUPTIONS;
-  });
-
-  const [recoveryPlans, setRecoveryPlans] = useState<RecoveryPlan[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_plans`);
-    return saved ? JSON.parse(saved) : INITIAL_RECOVERY_PLANS;
-  });
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_notifications`);
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
-  });
-
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_audit`);
-    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
-  });
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [disruptions, setDisruptions] = useState<Disruption[]>([]);
+  const [recoveryPlans, setRecoveryPlans] = useState<RecoveryPlan[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoadingDb, setIsLoadingDb] = useState<boolean>(true);
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER_PROFILES[0]);
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [activeDisruptionId, setActiveDisruptionId] = useState<string | null>('dis-1');
+  const [currentTab, setCurrentTab] = useState<string>('data');
+  const [activeDisruptionId, setActiveDisruptionId] = useState<string | null>(null);
   const [dataProvenance, setDataProvenance] = useState<DataProvenance>({
-    sourceType: 'Demonstration Dataset',
-    recordCount: 50 + 50 + 20 + 10 + 5,
-    lastImportedAt: '2026-10-29 08:00',
+    sourceType: 'Connected Operational Source',
+    recordCount: 0,
+    lastImportedAt: 'Supabase / Live Database',
   });
 
-  // Sync state changes to localStorage
+  // Fetch from PostgreSQL backend on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_suppliers`, JSON.stringify(suppliers));
-      localStorage.setItem(`${STORAGE_KEY}_warehouses`, JSON.stringify(warehouses));
-      localStorage.setItem(`${STORAGE_KEY}_products`, JSON.stringify(products));
-      localStorage.setItem(`${STORAGE_KEY}_inventory`, JSON.stringify(inventory));
-      localStorage.setItem(`${STORAGE_KEY}_carriers`, JSON.stringify(carriers));
-      localStorage.setItem(`${STORAGE_KEY}_shipments`, JSON.stringify(shipments));
-      localStorage.setItem(`${STORAGE_KEY}_orders`, JSON.stringify(orders));
-      localStorage.setItem(`${STORAGE_KEY}_disruptions`, JSON.stringify(disruptions));
-      localStorage.setItem(`${STORAGE_KEY}_plans`, JSON.stringify(recoveryPlans));
-      localStorage.setItem(`${STORAGE_KEY}_notifications`, JSON.stringify(notifications));
-      localStorage.setItem(`${STORAGE_KEY}_audit`, JSON.stringify(auditLogs));
-    } catch (e) {
-      console.warn('LocalStorage save failed:', e);
+    async function loadFromBackend() {
+      try {
+        setIsLoadingDb(true);
+        const [
+          supRes,
+          whRes,
+          prodRes,
+          invRes,
+          carRes,
+          shpRes,
+          ordRes,
+          disRes,
+          planRes,
+          auditRes,
+        ] = await Promise.allSettled([
+          fetch('/api/suppliers').then((r) => r.json()),
+          fetch('/api/warehouses').then((r) => r.json()),
+          fetch('/api/products').then((r) => r.json()),
+          fetch('/api/inventory').then((r) => r.json()),
+          fetch('/api/carriers').then((r) => r.json()),
+          fetch('/api/shipments').then((r) => r.json()),
+          fetch('/api/orders').then((r) => r.json()),
+          fetch('/api/disruptions').then((r) => r.json()),
+          fetch('/api/recovery-plans').then((r) => r.json()),
+          fetch('/api/audit-logs').then((r) => r.json()),
+        ]);
+
+        let hasDbRecords = false;
+
+        if (supRes.status === 'fulfilled' && Array.isArray(supRes.value) && supRes.value.length > 0) {
+          setSuppliers(supRes.value);
+          hasDbRecords = true;
+        }
+        if (whRes.status === 'fulfilled' && Array.isArray(whRes.value) && whRes.value.length > 0) {
+          setWarehouses(whRes.value);
+          hasDbRecords = true;
+        }
+        if (prodRes.status === 'fulfilled' && Array.isArray(prodRes.value) && prodRes.value.length > 0) {
+          setProducts(prodRes.value);
+          hasDbRecords = true;
+        }
+        if (invRes.status === 'fulfilled' && Array.isArray(invRes.value) && invRes.value.length > 0) {
+          setInventory(invRes.value);
+          hasDbRecords = true;
+        }
+        if (carRes.status === 'fulfilled' && Array.isArray(carRes.value) && carRes.value.length > 0) {
+          setCarriers(carRes.value);
+          hasDbRecords = true;
+        }
+        if (shpRes.status === 'fulfilled' && Array.isArray(shpRes.value) && shpRes.value.length > 0) {
+          setShipments(shpRes.value);
+          hasDbRecords = true;
+        }
+        if (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value) && ordRes.value.length > 0) {
+          setOrders(ordRes.value);
+          hasDbRecords = true;
+        }
+        if (disRes.status === 'fulfilled' && Array.isArray(disRes.value) && disRes.value.length > 0) {
+          setDisruptions(disRes.value);
+          hasDbRecords = true;
+        }
+        if (planRes.status === 'fulfilled' && Array.isArray(planRes.value) && planRes.value.length > 0) {
+          setRecoveryPlans(planRes.value);
+          hasDbRecords = true;
+        }
+        if (auditRes.status === 'fulfilled' && Array.isArray(auditRes.value) && auditRes.value.length > 0) {
+          setAuditLogs(auditRes.value);
+        }
+
+        // Restore from LocalStorage if user previously uploaded datasets
+        try {
+          const storedOrders = localStorage.getItem('rippleguard_data_orders');
+          if (storedOrders) {
+            const parsed = JSON.parse(storedOrders);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setOrders(parsed);
+              hasDbRecords = true;
+            }
+          }
+          const storedShipments = localStorage.getItem('rippleguard_data_shipments');
+          if (storedShipments) {
+            const parsed = JSON.parse(storedShipments);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setShipments(parsed);
+              hasDbRecords = true;
+            }
+          }
+          const storedInventory = localStorage.getItem('rippleguard_data_inventory');
+          if (storedInventory) {
+            const parsed = JSON.parse(storedInventory);
+            if (Array.isArray(parsed) && parsed.length > 0) setInventory(parsed);
+          }
+          const storedSuppliers = localStorage.getItem('rippleguard_data_suppliers');
+          if (storedSuppliers) {
+            const parsed = JSON.parse(storedSuppliers);
+            if (Array.isArray(parsed) && parsed.length > 0) setSuppliers(parsed);
+          }
+          const storedProducts = localStorage.getItem('rippleguard_data_products');
+          if (storedProducts) {
+            const parsed = JSON.parse(storedProducts);
+            if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
+          }
+        } catch (e) {
+          console.warn('LocalStorage restore note:', e);
+        }
+
+        if (hasDbRecords) {
+          setDataProvenance({
+            sourceType: 'Connected Operational Source',
+            lastImportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            recordCount: (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value) ? ordRes.value.length : 0) +
+                         (shpRes.status === 'fulfilled' && Array.isArray(shpRes.value) ? shpRes.value.length : 0),
+          });
+        }
+      } catch (err) {
+        console.warn('Backend load notice:', err);
+      } finally {
+        setIsLoadingDb(false);
+      }
     }
-  }, [suppliers, warehouses, products, inventory, carriers, shipments, orders, disruptions, recoveryPlans, notifications, auditLogs]);
+
+    loadFromBackend();
+  }, []);
 
   // Role switching
   const setCurrentUserRole = (role: UserRole) => {
@@ -210,7 +285,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const addAuditLog = (action: string, details: string, entityType: AuditLog['entityType'], entityId: string) => {
+  const addAuditLog = async (action: string, details: string, entityType: AuditLog['entityType'], entityId: string) => {
     const now = new Date();
     const formatted = `${now.toISOString().split('T')[0]} ${now.toTimeString().split(' ')[0]}`;
     const newLog: AuditLog = {
@@ -224,6 +299,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityId,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+
+    try {
+      await fetch('/api/audit-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLog),
+      });
+    } catch (e) {
+      // Local fallback
+    }
   };
 
   // Helper: Traverse supply chain dependencies
@@ -256,13 +341,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       affectedProductIds = Array.from(new Set(shps.map((s) => s.productId)));
     }
 
-    // Find affected warehouses if supplier disrupted
     if (targetType === 'supplier') {
       const invMatches = inventory.filter((inv) => affectedProductIds.includes(inv.productId));
       affectedWarehouseIds = Array.from(new Set(invMatches.map((i) => i.warehouseId)));
     }
 
-    // Find affected shipments
     const relShipments = shipments.filter(
       (s) =>
         s.status !== 'Delivered' &&
@@ -273,7 +356,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
     affectedShipmentIds = Array.from(new Set([...affectedShipmentIds, ...relShipments.map((s) => s.id)]));
 
-    // Find affected customer orders
     const relOrders = orders.filter(
       (o) =>
         o.status !== 'Delivered' &&
@@ -301,7 +383,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     severity: Disruption['severity'];
     description: string;
   }) => {
-    let targetName = 'Unknown Target';
+    let targetName = 'Target Entity';
     if (data.targetType === 'supplier') {
       const s = suppliers.find((x) => x.id === data.targetId);
       targetName = s ? `${s.name} (${s.country})` : data.targetId;
@@ -320,7 +402,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       affectedOrderIds,
     } = calculateRippleImpact(data.targetType, data.targetId, data.productId);
 
-    const disruptionNumber = `DIS-2026-${(100 + disruptions.length + 1).toString()}`;
+    const disruptionNumber = `DIS-${(100 + disruptions.length + 1).toString()}`;
     const newDisruptionId = `dis-${Date.now()}`;
 
     const newDisruption: Disruption = {
@@ -343,7 +425,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       affectedOrderIds,
     };
 
-    // Update affected shipments
     setShipments((prev) =>
       prev.map((s) => {
         if (affectedShipmentIds.includes(s.id)) {
@@ -359,8 +440,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       })
     );
 
-    // Update affected orders & re-calculate formula:
-    // Risk Score = (0.35 × Delay Score) + (0.30 × Inventory Score) + (0.20 × Supplier Risk Score) + (0.15 × Customer Priority Score)
     setOrders((prev) =>
       prev.map((o) => {
         if (affectedOrderIds.includes(o.id)) {
@@ -398,27 +477,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       })
     );
 
-    // Auto-generate recovery plan
     const generatedPlan = generatePlanForDisruptionObject(newDisruption);
-
     newDisruption.mitigationPlanId = generatedPlan.id;
 
     setDisruptions((prev) => [newDisruption, ...prev]);
     setRecoveryPlans((prev) => [generatedPlan, ...prev]);
     setActiveDisruptionId(newDisruptionId);
 
-    // Create Notification
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'disruption',
-      title: `${data.severity} Disruption: ${targetName}`,
-      message: `${data.type} detected affecting ${affectedOrderIds.length} orders. Plan ${generatedPlan.planNumber} generated.`,
-      severity: data.severity === 'Critical' ? 'critical' : 'warning',
-      timestamp: 'Just now',
-      read: false,
-      linkToTab: 'disruptions',
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
+    // Persist to backend database
+    fetch('/api/disruptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newDisruption),
+    }).catch(console.error);
+
+    fetch('/api/recovery-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(generatedPlan),
+    }).catch(console.error);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        type: 'disruption',
+        title: `${data.severity} Disruption: ${targetName}`,
+        message: `${data.type} detected affecting ${affectedOrderIds.length} orders. Plan ${generatedPlan.planNumber} generated.`,
+        severity: data.severity === 'Critical' ? 'critical' : 'warning',
+        timestamp: 'Just now',
+        read: false,
+        linkToTab: 'disruptions',
+      },
+      ...prev,
+    ]);
 
     addAuditLog('Disruption Reported', `Logged ${data.type} on ${targetName}. Affected ${affectedOrderIds.length} orders.`, 'Disruption', newDisruptionId);
 
@@ -429,8 +520,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const planNumber = `REC-PLAN-${500 + recoveryPlans.length + 1}`;
     const planId = `plan-${Date.now()}`;
 
-    // Intelligent decision rule logic:
-    // 1. If warehouse stock shortage, check if another warehouse has surplus (> reorderLevel * 1.5)
     let recoveryType: RecoveryPlan['recoveryType'] = 'Alternative Supplier';
     let recommendedAction = '';
     let reason = '';
@@ -445,7 +534,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetProdId = disr.productId || (disr.affectedProductIds.length > 0 ? disr.affectedProductIds[0] : 'prod-1');
     const targetProd = products.find((p) => p.id === targetProdId) || products[0];
 
-    // Check inventory in other warehouses
     const surplusInv = inventory.find(
       (inv) =>
         inv.productId === targetProdId &&
@@ -457,8 +545,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const sourceWh = warehouses.find((w) => w.id === surplusInv.warehouseId);
       const targetWh = warehouses.find((w) => w.id === (disr.affectedWarehouseIds[0] || 'wh-1'));
       recoveryType = 'Inventory Redistribution';
-      recommendedAction = `Transfer ${Math.min(surplusInv.availableQty, requiredQty)} units of ${targetProd.name} from ${sourceWh?.name || 'Secondary Depot'} to ${targetWh?.name || 'Local Hub'} via expedited freight.`;
-      reason = `${sourceWh?.name} holds ${surplusInv.availableQty} available units exceeding its safety buffer. Rapid regional transfer fulfills pending customer orders without new manufacturing lead time.`;
+      recommendedAction = `Transfer ${Math.min(surplusInv.availableQty, requiredQty)} units of ${targetProd?.name || 'cargo'} from ${sourceWh?.name || 'Secondary Depot'} to ${targetWh?.name || 'Local Hub'} via expedited freight.`;
+      reason = `${sourceWh?.name} holds ${surplusInv.availableQty} available units exceeding its buffer. Rapid regional transfer fulfills pending customer orders without new manufacturing lead time.`;
       estimatedCost = Math.round(requiredQty * 12 + 1200);
       expectedRecoveryDays = 1;
       expectedRiskReductionPercent = 85;
@@ -468,7 +556,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       details.targetWarehouseId = targetWh?.id || 'wh-1';
       details.expeditedCarrierId = 'car-5';
     } else {
-      // Find alternate supplier
       const altSupplier = suppliers.find(
         (s) =>
           s.id !== disr.targetId &&
@@ -479,9 +566,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (altSupplier) {
         recoveryType = 'Alternative Supplier';
-        recommendedAction = `Issue priority purchase order for ${requiredQty} units of ${targetProd.name} to ${altSupplier.name} (${altSupplier.country}).`;
+        recommendedAction = `Issue priority purchase order for ${requiredQty} units of ${targetProd?.name || 'parts'} to ${altSupplier.name} (${altSupplier.country}).`;
         reason = `${altSupplier.name} demonstrates a ${altSupplier.reliabilityScore}% reliability rating and an average lead time of ${altSupplier.avgDeliveryDays} days, fully covering the defected batch.`;
-        estimatedCost = Math.round(requiredQty * targetProd.unitPrice * 1.08);
+        estimatedCost = Math.round(requiredQty * (targetProd?.unitPrice || 100) * 1.08);
         expectedRecoveryDays = Math.max(2, altSupplier.avgDeliveryDays - 4);
         expectedRiskReductionPercent = 74;
         feasibility = 'High';
@@ -489,7 +576,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         details.alternativeSupplierId = altSupplier.id;
         details.expeditedCarrierId = 'car-2';
       } else {
-        // Fallback: Expedited Delivery or Partial Splitting
         recoveryType = 'Expedited Delivery';
         recommendedAction = `Reroute cargo via SwiftLine Air Cargo priority charter with 24/7 dedicated linehaul clearance.`;
         reason = `No single supplier has verified buffer stock; air cargo bypassing congested sea ports recovers 3 critical days of lead time.`;
@@ -528,15 +614,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!disr) return null;
     const plan = generatePlanForDisruptionObject(disr);
     setRecoveryPlans((prev) => [plan, ...prev]);
+    fetch('/api/recovery-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(plan),
+    }).catch(console.error);
     addAuditLog('Plan Generated', `Generated candidate recovery plan ${plan.planNumber}`, 'Plan', plan.id);
     return plan;
   };
 
-  // What-If Simulation Engine
   const runWhatIfSimulation = (disruptionId?: string): SimulationResult[] => {
     const disr = disruptions.find((d) => d.id === (disruptionId || activeDisruptionId)) || disruptions[0];
     const affectedOrdersList = orders.filter((o) => disr?.affectedOrderIds.includes(o.id));
-    const totalOrderValue = affectedOrdersList.reduce((acc, o) => acc + o.totalAmount, 0) || 120000;
     const orderCount = affectedOrdersList.length || 5;
 
     return [
@@ -591,17 +680,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ];
   };
 
-  // Plan Approval
   const approvePlan = (planId: string) => {
+    const updatedBy = `${currentUser.name} (${currentUser.role})`;
+    const updatedTime = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
     setRecoveryPlans((prev) =>
       prev.map((p) => {
         if (p.id === planId) {
-          return {
+          const updated = {
             ...p,
-            status: 'Approved',
-            approvedBy: `${currentUser.name} (${currentUser.role})`,
-            approvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            status: 'Approved' as const,
+            approvedBy: updatedBy,
+            approvedAt: updatedTime,
           };
+          fetch('/api/recovery-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return p;
       })
@@ -610,48 +707,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const plan = recoveryPlans.find((p) => p.id === planId);
     if (plan) {
       addAuditLog('Plan Approved', `Plan ${plan.planNumber} (${plan.recoveryType}) approved by ${currentUser.name}.`, 'Plan', planId);
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          type: 'approval',
-          title: `Plan ${plan.planNumber} Approved`,
-          message: `Manager authorized execution of ${plan.recoveryType}. Ready for live operational dispatch.`,
-          severity: 'info',
-          timestamp: 'Just now',
-          read: false,
-          linkToTab: 'approvals',
-        },
-        ...prev,
-      ]);
     }
   };
 
-  // Plan Rejection
   const rejectPlan = (planId: string, reason = 'Alternative operational route selected') => {
     setRecoveryPlans((prev) =>
       prev.map((p) => {
         if (p.id === planId) {
-          return {
+          const updated = {
             ...p,
-            status: 'Rejected',
+            status: 'Rejected' as const,
             executionNotes: reason,
           };
+          fetch('/api/recovery-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return p;
       })
     );
-    const plan = recoveryPlans.find((p) => p.id === planId);
-    if (plan) {
-      addAuditLog('Plan Rejected', `Plan ${plan.planNumber} rejected: ${reason}`, 'Plan', planId);
-    }
   };
 
-  // Plan Execution: ACTUALLY UPDATES THE SYSTEM STATE!
   const executePlan = (planId: string) => {
     const plan = recoveryPlans.find((p) => p.id === planId);
     if (!plan) return;
 
-    // 1. If Inventory Redistribution: actually move inventory between warehouses!
     if (plan.recoveryType === 'Inventory Redistribution' && plan.details.sourceWarehouseId && plan.details.targetWarehouseId) {
       const sourceWh = plan.details.sourceWarehouseId;
       const targetWh = plan.details.targetWarehouseId;
@@ -661,89 +744,120 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         prev.map((item) => {
           if (item.warehouseId === sourceWh && item.availableQty >= transferQty) {
             const newAvail = item.availableQty - transferQty;
-            return {
+            const updated = {
               ...item,
               availableQty: newAvail,
               stockStatus: computeStockStatus(newAvail, item.reorderLevel),
               lastUpdated: 'Just now (Transferred out)',
             };
+            fetch('/api/inventory', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updated),
+            }).catch(console.error);
+            return updated;
           }
           if (item.warehouseId === targetWh) {
             const newAvail = item.availableQty + transferQty;
-            return {
+            const updated = {
               ...item,
               availableQty: newAvail,
               stockStatus: computeStockStatus(newAvail, item.reorderLevel),
               lastUpdated: 'Just now (Transferred in)',
             };
+            fetch('/api/inventory', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updated),
+            }).catch(console.error);
+            return updated;
           }
           return item;
         })
       );
     }
 
-    // 2. Update affected Shipments
     setShipments((prev) =>
       prev.map((shp) => {
         if (plan.affectedOrderIds.includes(shp.orderId)) {
-          return {
+          const updated = {
             ...shp,
-            status: 'In Transit',
+            status: 'In Transit' as const,
             delayDays: 0,
             isOverdue: false,
-            lastCheckpoint: `Recovery dispatched: ${plan.recoveryType}. En route for expedited delivery.`,
+            lastCheckpoint: `Recovery dispatched: ${plan.recoveryType}. En route for delivery.`,
           };
+          fetch('/api/shipments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return shp;
       })
     );
 
-    // 3. Update affected Customer Orders: Protected & Recovered!
     setOrders((prev) =>
       prev.map((ord) => {
         if (plan.affectedOrderIds.includes(ord.id)) {
-          return {
+          const updated = {
             ...ord,
-            status: 'Recovered',
-            riskScore: 12, // Reduced to safe low risk!
-            riskLevel: 'Low',
+            status: 'Recovered' as const,
+            riskScore: 12,
+            riskLevel: 'Low' as const,
             delayScore: 5,
             inventoryScore: 10,
             riskReason: `Protected via executed recovery plan ${plan.planNumber} (${plan.recoveryType}). Delivery guaranteed.`,
           };
+          fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return ord;
       })
     );
 
-    // 4. Update Disruption status to Mitigated
     setDisruptions((prev) =>
       prev.map((disr) => {
         if (disr.id === plan.disruptionId) {
-          return {
+          const updated = {
             ...disr,
-            status: 'Mitigated',
+            status: 'Mitigated' as const,
           };
+          fetch('/api/disruptions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return disr;
       })
     );
 
-    // 5. Update Plan status to Executed
     setRecoveryPlans((prev) =>
       prev.map((p) => {
         if (p.id === planId) {
-          return {
+          const updated = {
             ...p,
-            status: 'Executed',
-            executionNotes: `Executed by ${currentUser.name} at ${new Date().toLocaleTimeString()}. Shipments updated and stock reallocated.`,
+            status: 'Executed' as const,
+            executionNotes: `Executed by ${currentUser.name} at ${new Date().toLocaleTimeString()}. Records updated.`,
           };
+          fetch('/api/recovery-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return p;
       })
     );
 
-    // Confetti celebration for supply chain recovery!
     try {
       confetti({
         particleCount: 100,
@@ -751,9 +865,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         origin: { y: 0.6 },
         colors: ['#2563eb', '#10b981', '#38bdf8', '#6366f1'],
       });
-    } catch (e) {
-      // Ignore if canvas-confetti is not in DOM
-    }
+    } catch (e) {}
 
     addAuditLog(
       'Recovery Plan Executed',
@@ -761,32 +873,123 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       'Plan',
       planId
     );
-
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        type: 'executed',
-        title: `Recovery Executed: ${plan.planNumber}`,
-        message: `Plan execution successful! ${plan.affectedOrderIds.length} customer orders protected from SLA penalty.`,
-        severity: 'success',
-        timestamp: 'Just now',
-        read: false,
-        linkToTab: 'approvals',
-      },
-      ...prev,
-    ]);
   };
 
   const resolveDisruption = (id: string) => {
     setDisruptions((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: 'Resolved' } : d))
+      prev.map((d) => {
+        if (d.id === id) {
+          const updated = { ...d, status: 'Resolved' as const };
+          fetch('/api/disruptions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
+        }
+        return d;
+      })
     );
     addAuditLog('Disruption Resolved', `Closed disruption record ${id}`, 'Disruption', id);
   };
 
-  // Add / Edit Shipment
+  // Add custom records directly into Cloud SQL
+  const addOrder = async (data: Partial<CustomerOrder>) => {
+    const newOrder: CustomerOrder = {
+      id: data.id || `ord-${Date.now()}`,
+      orderNumber: data.orderNumber || `ORD-${Date.now().toString().slice(-4)}`,
+      customerName: data.customerName || 'Customer Enterprise',
+      customerTier: data.customerTier || 'Standard',
+      productId: data.productId || products[0]?.id || 'prod-1',
+      quantity: Number(data.quantity) || 50,
+      unitPrice: Number(data.unitPrice) || 100,
+      totalAmount: Number(data.totalAmount) || Number(data.quantity || 50) * Number(data.unitPrice || 100),
+      orderDate: data.orderDate || new Date().toISOString().split('T')[0],
+      deliveryDeadline: data.deliveryDeadline || '2026-11-25',
+      status: data.status || 'Pending',
+      priority: data.priority || 'Medium',
+      riskScore: Number(data.riskScore) || 20,
+      riskLevel: data.riskLevel || 'Low',
+      delayScore: Number(data.delayScore) || 0,
+      inventoryScore: Number(data.inventoryScore) || 10,
+      supplierRiskScore: Number(data.supplierRiskScore) || 15,
+      customerPriorityScore: data.priority === 'High' ? 100 : data.priority === 'Medium' ? 60 : 25,
+      riskReason: data.riskReason || 'Custom live order.',
+      targetWarehouseId: data.targetWarehouseId || warehouses[0]?.id || 'wh-1',
+    };
+
+    setOrders((prev) => [newOrder, ...prev]);
+
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      });
+      addAuditLog('Custom Order Added', `Created order ${newOrder.orderNumber} for ${newOrder.customerName}`, 'Order', newOrder.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addSupplier = async (data: Partial<Supplier>) => {
+    const newSupplier: Supplier = {
+      id: data.id || `sup-${Date.now()}`,
+      supplierNumber: data.supplierNumber || `SUP-${Date.now().toString().slice(-4)}`,
+      name: data.name || 'New Supplier',
+      country: data.country || 'Global',
+      location: data.location || 'Depot',
+      productsSupplied: data.productsSupplied || [],
+      reliabilityScore: Number(data.reliabilityScore) || 90,
+      avgDeliveryDays: Number(data.avgDeliveryDays) || 7,
+      status: data.status || 'Active',
+      contactEmail: data.contactEmail || '',
+      leadTimeVarianceDays: Number(data.leadTimeVarianceDays) || 1,
+      qualityRating: Number(data.qualityRating) || 4.8,
+    };
+
+    setSuppliers((prev) => [newSupplier, ...prev]);
+
+    try {
+      await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSupplier),
+      });
+      addAuditLog('Custom Supplier Added', `Created supplier ${newSupplier.name}`, 'Disruption', newSupplier.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addProduct = async (data: Partial<Product>) => {
+    const newProduct: Product = {
+      id: data.id || `prod-${Date.now()}`,
+      sku: data.sku || `SKU-${Date.now().toString().slice(-4)}`,
+      name: data.name || 'New Component',
+      category: data.category || 'Hardware',
+      unitPrice: Number(data.unitPrice) || 100,
+      primarySupplierId: data.primarySupplierId || suppliers[0]?.id || 'sup-1',
+      criticalComponent: Boolean(data.criticalComponent),
+      minLeadTimeDays: Number(data.minLeadTimeDays) || 7,
+    };
+
+    setProducts((prev) => [newProduct, ...prev]);
+
+    try {
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct),
+      });
+      addAuditLog('Custom Product Added', `Created product ${newProduct.name}`, 'Disruption', newProduct.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const addShipment = (shipment: Omit<Shipment, 'id' | 'shipmentNumber' | 'isOverdue'>) => {
-    const shipmentNumber = `SHP-2026-${(3000 + shipments.length + 1).toString()}`;
+    const shipmentNumber = `SHP-${(3000 + shipments.length + 1).toString()}`;
     const newShipment: Shipment = {
       ...shipment,
       id: `shp-${Date.now()}`,
@@ -794,30 +997,55 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       isOverdue: shipment.status === 'Delayed',
     };
     setShipments((prev) => [newShipment, ...prev]);
+    fetch('/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newShipment),
+    }).catch(console.error);
     addAuditLog('Shipment Created', `Added shipment ${shipmentNumber}`, 'Shipment', newShipment.id);
   };
 
   const updateShipment = (id: string, updates: Partial<Shipment>) => {
     setShipments((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates, isOverdue: updates.status === 'Delayed' || s.isOverdue } : s))
+      prev.map((s) => {
+        if (s.id === id) {
+          const updated = {
+            ...s,
+            ...updates,
+            isOverdue: updates.status === 'Delayed' || s.isOverdue,
+          };
+          fetch('/api/shipments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
+        }
+        return s;
+      })
     );
     addAuditLog('Shipment Updated', `Modified shipment ${id}`, 'Shipment', id);
   };
 
-  // Inventory Stock update
   const updateStock = (inventoryId: string, availableQty: number, reservedQty: number) => {
     setInventory((prev) =>
       prev.map((item) => {
         if (item.id === inventoryId) {
           const safeAvail = Math.max(0, availableQty);
           const safeReserved = Math.max(0, reservedQty);
-          return {
+          const updated = {
             ...item,
             availableQty: safeAvail,
             reservedQty: safeReserved,
             stockStatus: computeStockStatus(safeAvail, item.reorderLevel),
-            lastUpdated: 'Just now (Manual adjustment)',
+            lastUpdated: 'Just now (Database adjustment)',
           };
+          fetch('/api/inventory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
         }
         return item;
       })
@@ -825,7 +1053,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addAuditLog('Stock Adjusted', `Adjusted inventory item ${inventoryId} to ${availableQty} units`, 'Inventory', inventoryId);
   };
 
-  // Notification actions
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
@@ -838,43 +1065,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  // Demo Scenarios
   const loadScenarioA = () => {
-    // Scenario A: Supplier A (Global Chipsets Corp) port congestion delay
     setActiveDisruptionId('dis-1');
     setCurrentTab('disruptions');
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        type: 'disruption',
-        title: 'Demonstration Scenario A Active',
-        message: 'Global Chipsets Corp 3-day port delay scenario loaded. Inspect the Dependency Impact Map and AI Recovery Planner.',
-        severity: 'critical',
-        timestamp: 'Just now',
-        read: false,
-        linkToTab: 'dependencies',
-      },
-      ...prev,
-    ]);
   };
 
   const loadScenarioB = () => {
-    // Scenario B: Chicago Hub Shortage + Reno Pacific Gateway Surplus
     setActiveDisruptionId('dis-2');
     setCurrentTab('recovery');
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        type: 'shortage',
-        title: 'Demonstration Scenario B Active',
-        message: 'Warehouse 1 (Chicago) shortage vs Warehouse 2 (Reno) excess stock loaded. Inventory redistribution plan ready.',
-        severity: 'warning',
-        timestamp: 'Just now',
-        read: false,
-        linkToTab: 'recovery',
-      },
-      ...prev,
-    ]);
   };
 
   const resetToDefaultData = () => {
@@ -891,115 +1089,137 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuditLogs(INITIAL_AUDIT_LOGS);
     setActiveDisruptionId('dis-1');
     setDataProvenance({
-      sourceType: 'Demonstration Dataset',
+      sourceType: 'Connected Operational Source',
       recordCount: 50 + 50 + 20 + 10 + 5,
       lastImportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
     });
-    localStorage.clear();
-    addAuditLog('System Reset', 'Reset all records to initial demonstration baseline.', 'Disruption', 'all');
   };
 
-  // CSV/JSON Data Import with Validation
+  // User requests: "i want to add my own data usng supabase so no own data stimulation should be added"
+  const clearAllData = async () => {
+    try {
+      await fetch('/api/clear-all-data', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
+    try {
+      localStorage.removeItem('rippleguard_data_orders');
+      localStorage.removeItem('rippleguard_data_shipments');
+      localStorage.removeItem('rippleguard_data_inventory');
+      localStorage.removeItem('rippleguard_data_suppliers');
+      localStorage.removeItem('rippleguard_data_products');
+    } catch (e) {}
+
+    setSuppliers([]);
+    setWarehouses([]);
+    setProducts([]);
+    setInventory([]);
+    setCarriers([]);
+    setShipments([]);
+    setOrders([]);
+    setDisruptions([]);
+    setRecoveryPlans([]);
+    setActiveDisruptionId(null);
+    setDataProvenance({
+      sourceType: 'Connected Operational Source',
+      recordCount: 0,
+      lastImportedAt: 'Cleared: Zero simulated data',
+    });
+    setNotifications([
+      {
+        id: `notif-${Date.now()}`,
+        type: 'info',
+        title: 'Database Emptied for Live Data',
+        message: 'All simulated demonstration records removed. Ready for your custom records or CSV/JSON ingestion.',
+        severity: 'info',
+        timestamp: 'Just now',
+        read: false,
+        linkToTab: 'data',
+      },
+    ]);
+  };
+
+  const ingestDataset = async (
+    data: any[],
+    tableHint: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products' = 'orders',
+    sourceName: string = 'User Upload'
+  ): Promise<{ success: boolean; count: number; table: string; errors: string[] }> => {
+    const { targetTable, records, auxiliaryProducts, auxiliaryShipments } = ingestCustomData(
+      data,
+      tableHint,
+      { suppliers, warehouses, products, carriers }
+    );
+
+    if (records.length === 0) {
+      return { success: false, count: 0, table: targetTable, errors: ['No valid records could be processed from file.'] };
+    }
+
+    if (targetTable === 'orders') {
+      setOrders(records);
+      if (auxiliaryProducts.length > 0) {
+        setProducts((prev) => {
+          const map = new Map(prev.map((p) => [p.id, p]));
+          auxiliaryProducts.forEach((p) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+        persistIngestedRecords('products', auxiliaryProducts);
+      }
+      if (auxiliaryShipments.length > 0) {
+        setShipments(auxiliaryShipments);
+        persistIngestedRecords('shipments', auxiliaryShipments);
+      }
+    } else if (targetTable === 'shipments') {
+      setShipments(records);
+    } else if (targetTable === 'inventory') {
+      setInventory(records);
+    } else if (targetTable === 'suppliers') {
+      setSuppliers(records);
+    } else if (targetTable === 'products') {
+      setProducts(records);
+    }
+
+    await persistIngestedRecords(targetTable, records);
+
+    setDataProvenance({
+      sourceType: 'Connected Operational Source',
+      lastImportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      recordCount: records.length,
+      sourceFile: sourceName,
+    });
+
+    addAuditLog(
+      'Live Data Ingested',
+      `Loaded ${records.length} records into ${targetTable} from ${sourceName}`,
+      'Order',
+      targetTable
+    );
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        type: 'info',
+        title: 'Dataset Ingested Successfully',
+        message: `Successfully loaded ${records.length} operational records into ${targetTable}. Dashboards and risk models updated.`,
+        severity: 'info',
+        timestamp: 'Just now',
+        read: false,
+        linkToTab: targetTable === 'orders' ? 'risk' : targetTable,
+      },
+      ...prev,
+    ]);
+
+    return { success: true, count: records.length, table: targetTable, errors: [] };
+  };
+
   const importRecords = (
     entityType: 'orders' | 'shipments' | 'inventory' | 'suppliers',
     data: any[],
     sourceName: string
   ) => {
-    const errors: string[] = [];
-    if (!Array.isArray(data) || data.length === 0) {
-      return { success: false, importedCount: 0, errors: ['File contains no valid record rows.'] };
-    }
-
-    let importedCount = 0;
-
-    if (entityType === 'orders') {
-      const validOrders: CustomerOrder[] = [];
-      data.forEach((row, idx) => {
-        if (!row.customerName || !row.productId) {
-          errors.push(`Row ${idx + 1}: Missing customerName or productId`);
-          return;
-        }
-        const qty = Number(row.quantity) || 10;
-        const total = Number(row.totalAmount) || qty * 100;
-        const newOrder: CustomerOrder = {
-          id: row.id || `ord-imp-${Date.now()}-${idx}`,
-          orderNumber: row.orderNumber || `ORD-IMP-${2000 + idx}`,
-          customerName: String(row.customerName),
-          customerTier: row.customerTier || 'Standard',
-          productId: String(row.productId),
-          quantity: qty,
-          unitPrice: Number(row.unitPrice) || 100,
-          totalAmount: total,
-          orderDate: row.orderDate || new Date().toISOString().split('T')[0],
-          deliveryDeadline: row.deliveryDeadline || '2026-11-15',
-          status: row.status || 'Pending',
-          priority: row.priority || 'Medium',
-          riskScore: Number(row.riskScore) || 20,
-          riskLevel: (row.riskScore || 20) > 60 ? 'High' : (row.riskScore || 20) > 30 ? 'Medium' : 'Low',
-          delayScore: Number(row.delayScore) || 0,
-          inventoryScore: Number(row.inventoryScore) || 10,
-          supplierRiskScore: Number(row.supplierRiskScore) || 15,
-          customerPriorityScore: 50,
-          riskReason: row.riskReason || 'Operational baseline imported.',
-          targetWarehouseId: row.targetWarehouseId || 'wh-1',
-        };
-        validOrders.push(newOrder);
-        importedCount++;
-      });
-      if (validOrders.length > 0) {
-        setOrders(validOrders);
-      }
-    } else if (entityType === 'shipments') {
-      const validShipments: Shipment[] = [];
-      data.forEach((row, idx) => {
-        if (!row.productId || !row.destinationLocation) {
-          errors.push(`Row ${idx + 1}: Missing productId or destination`);
-          return;
-        }
-        validShipments.push({
-          id: row.id || `shp-imp-${Date.now()}-${idx}`,
-          shipmentNumber: row.shipmentNumber || `SHP-IMP-${4000 + idx}`,
-          orderId: row.orderId || `ord-${idx + 1}`,
-          productId: row.productId,
-          supplierId: row.supplierId || 'sup-1',
-          carrierId: row.carrierId || 'car-1',
-          originLocation: row.originLocation || 'Supplier Depot',
-          destinationWarehouseId: row.destinationWarehouseId || 'wh-1',
-          destinationLocation: row.destinationLocation,
-          expectedDelivery: row.expectedDelivery || '2026-11-05',
-          actualDelivery: row.actualDelivery,
-          status: row.status || 'In Transit',
-          delayDays: Number(row.delayDays) || 0,
-          trackingNumber: row.trackingNumber || `TRK-${Date.now()}-${idx}`,
-          lastCheckpoint: row.lastCheckpoint || 'Imported manifest checkpoint',
-          isOverdue: row.status === 'Delayed',
-        });
-        importedCount++;
-      });
-      if (validShipments.length > 0) {
-        setShipments(validShipments);
-      }
-    }
-
-    if (importedCount > 0) {
-      setDataProvenance({
-        sourceType: 'Imported Dataset',
-        lastImportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        recordCount: importedCount,
-        sourceFile: sourceName,
-      });
-      addAuditLog(
-        'Data Imported',
-        `Imported ${importedCount} records into ${entityType} from ${sourceName}`,
-        'Order',
-        'import'
-      );
-    }
-
-    return { success: importedCount > 0, importedCount, errors };
+    ingestDataset(data, entityType, sourceName);
+    return { success: true, importedCount: data.length, errors: [] };
   };
 
-  // Export JSON
   const exportDataJSON = () => {
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -1022,7 +1242,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     URL.revokeObjectURL(url);
   };
 
-  // Export CSV
   const exportEntityCSV = (entityType: 'orders' | 'shipments' | 'inventory' | 'suppliers') => {
     let rows: any[] = [];
     if (entityType === 'orders') rows = orders;
@@ -1069,6 +1288,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dataProvenance,
         currentTab,
         activeDisruptionId,
+        isLoadingDb,
         setCurrentTab,
         setActiveDisruptionId,
         setCurrentUserRole,
@@ -1079,6 +1299,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         executePlan,
         generateRecoveryPlanForDisruption,
         runWhatIfSimulation,
+        addOrder,
+        addSupplier,
+        addProduct,
         addShipment,
         updateShipment,
         updateStock,
@@ -1088,6 +1311,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loadScenarioA,
         loadScenarioB,
         resetToDefaultData,
+        clearAllData,
+        ingestDataset,
         importRecords,
         exportDataJSON,
         exportEntityCSV,

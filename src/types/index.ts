@@ -205,7 +205,7 @@ export interface RecoveryPlan {
 
 export interface NotificationItem {
   id: string;
-  type: 'disruption' | 'shortage' | 'risk' | 'approval' | 'executed';
+  type: 'disruption' | 'shortage' | 'risk' | 'approval' | 'executed' | 'info';
   title: string;
   message: string;
   severity: 'critical' | 'warning' | 'info' | 'success';

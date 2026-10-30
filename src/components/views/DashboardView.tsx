@@ -58,7 +58,7 @@ export const DashboardView: React.FC = () => {
   const totalClosedPlans = recoveryPlans.filter((p) => p.status === 'Executed' || p.status === 'Rejected').length;
   const recoverySuccessRate = totalClosedPlans > 0
     ? ((executedPlansCount / totalClosedPlans) * 100).toFixed(1)
-    : '95.6';
+    : '0.0';
 
   // Shipment breakdown
   const deliveredShipments = shipments.filter((s) => s.status === 'Delivered').length;
@@ -238,7 +238,16 @@ export const DashboardView: React.FC = () => {
             </div>
 
             <div className="divide-y divide-slate-100">
-              {disruptions.slice(0, 3).map((disr) => (
+              {disruptions.length === 0 ? (
+                <div className="p-8 text-center">
+                  <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+                  <p className="text-xs font-semibold text-slate-800">No Active Disruptions Detected</p>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+                    All supply lines and logistics channels are running on schedule. Add disruptions manually or connect live data via Data Management.
+                  </p>
+                </div>
+              ) : (
+                disruptions.slice(0, 3).map((disr) => (
                 <div key={disr.id} className="p-4 hover:bg-slate-50 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-2">
@@ -284,7 +293,7 @@ export const DashboardView: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
 
@@ -307,22 +316,22 @@ export const DashboardView: React.FC = () => {
             <div className="space-y-3">
               <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
                 <div
-                  style={{ width: `${(deliveredShipments / totalShipments) * 100}%` }}
+                  style={{ width: `${totalShipments > 0 ? (deliveredShipments / totalShipments) * 100 : 0}%` }}
                   className="bg-emerald-500 h-full"
                   title={`Delivered: ${deliveredShipments}`}
                 />
                 <div
-                  style={{ width: `${(inTransitShipments / totalShipments) * 100}%` }}
+                  style={{ width: `${totalShipments > 0 ? (inTransitShipments / totalShipments) * 100 : 0}%` }}
                   className="bg-blue-600 h-full"
                   title={`In Transit: ${inTransitShipments}`}
                 />
                 <div
-                  style={{ width: `${(processingShipments / totalShipments) * 100}%` }}
+                  style={{ width: `${totalShipments > 0 ? (processingShipments / totalShipments) * 100 : 0}%` }}
                   className="bg-slate-400 h-full"
                   title={`Processing: ${processingShipments}`}
                 />
                 <div
-                  style={{ width: `${(delayedShipments / totalShipments) * 100}%` }}
+                  style={{ width: `${totalShipments > 0 ? (delayedShipments / totalShipments) * 100 : 0}%` }}
                   className="bg-red-500 h-full"
                   title={`Delayed: ${delayedShipments}`}
                 />
@@ -332,25 +341,33 @@ export const DashboardView: React.FC = () => {
                 <div className="p-2.5 rounded bg-emerald-50 border border-emerald-100">
                   <div className="text-[11px] text-emerald-800 font-medium">Delivered</div>
                   <div className="text-lg font-bold text-emerald-700 font-mono tabular-nums">{deliveredShipments}</div>
-                  <div className="text-[10px] text-emerald-600 font-mono">{((deliveredShipments / totalShipments) * 100).toFixed(0)}% of total</div>
+                  <div className="text-[10px] text-emerald-600 font-mono">
+                    {totalShipments > 0 ? ((deliveredShipments / totalShipments) * 100).toFixed(0) : '0'}% of total
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded bg-blue-50 border border-blue-100">
                   <div className="text-[11px] text-blue-800 font-medium">In Transit</div>
                   <div className="text-lg font-bold text-blue-700 font-mono tabular-nums">{inTransitShipments}</div>
-                  <div className="text-[10px] text-blue-600 font-mono">{((inTransitShipments / totalShipments) * 100).toFixed(0)}% on road/air</div>
+                  <div className="text-[10px] text-blue-600 font-mono">
+                    {totalShipments > 0 ? ((inTransitShipments / totalShipments) * 100).toFixed(0) : '0'}% on road/air
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
                   <div className="text-[11px] text-slate-700 font-medium">Processing</div>
                   <div className="text-lg font-bold text-slate-700 font-mono tabular-nums">{processingShipments}</div>
-                  <div className="text-[10px] text-slate-500 font-mono">{((processingShipments / totalShipments) * 100).toFixed(0)}% staging</div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    {totalShipments > 0 ? ((processingShipments / totalShipments) * 100).toFixed(0) : '0'}% staging
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded bg-red-50 border border-red-100">
                   <div className="text-[11px] text-red-800 font-medium">Delayed</div>
                   <div className="text-lg font-bold text-red-600 font-mono tabular-nums">{delayedShipments}</div>
-                  <div className="text-[10px] text-red-500 font-mono">{((delayedShipments / totalShipments) * 100).toFixed(0)}% overdue</div>
+                  <div className="text-[10px] text-red-500 font-mono">
+                    {totalShipments > 0 ? ((delayedShipments / totalShipments) * 100).toFixed(0) : '0'}% overdue
+                  </div>
                 </div>
               </div>
             </div>
@@ -385,7 +402,7 @@ export const DashboardView: React.FC = () => {
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    style={{ width: `${(highRiskOrders / orders.length) * 100}%` }}
+                    style={{ width: `${orders.length > 0 ? (highRiskOrders / orders.length) * 100 : 0}%` }}
                     className="h-full bg-red-500 rounded-full"
                   />
                 </div>
@@ -401,7 +418,7 @@ export const DashboardView: React.FC = () => {
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    style={{ width: `${(mediumRiskOrders / orders.length) * 100}%` }}
+                    style={{ width: `${orders.length > 0 ? (mediumRiskOrders / orders.length) * 100 : 0}%` }}
                     className="h-full bg-amber-500 rounded-full"
                   />
                 </div>
@@ -417,7 +434,7 @@ export const DashboardView: React.FC = () => {
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    style={{ width: `${(lowRiskOrders / orders.length) * 100}%` }}
+                    style={{ width: `${orders.length > 0 ? (lowRiskOrders / orders.length) * 100 : 0}%` }}
                     className="h-full bg-emerald-500 rounded-full"
                   />
                 </div>
@@ -445,7 +462,16 @@ export const DashboardView: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {recoveryPlans.slice(0, 3).map((plan) => (
+              {recoveryPlans.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-slate-200 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-slate-400 mx-auto mb-1.5 opacity-80" />
+                  <p className="text-xs font-medium text-slate-700">No Pending Recovery Plans</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Recovery recommendations are automatically generated when disruptions or at-risk shipments are identified.
+                  </p>
+                </div>
+              ) : (
+                recoveryPlans.slice(0, 3).map((plan) => (
                 <div key={plan.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-xs">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono font-bold text-slate-900">{plan.planNumber}</span>
@@ -485,7 +511,7 @@ export const DashboardView: React.FC = () => {
                     )}
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>
