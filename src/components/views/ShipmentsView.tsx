@@ -15,9 +15,11 @@ import {
   MapPin,
   Calendar,
   X,
+  Navigation,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Shipment, ShipmentStatus } from '../../types';
+import { VehicleTrackingMap } from '../common/VehicleTrackingMap';
 
 export const ShipmentsView: React.FC = () => {
   const { shipments, addShipment, updateShipment, suppliers, warehouses, carriers, products, orders } = useApp();
@@ -27,6 +29,7 @@ export const ShipmentsView: React.FC = () => {
   const [carrierFilter, setCarrierFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [trackedShipment, setTrackedShipment] = useState<Shipment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingShipment, setEditingShipment] = useState<Shipment | null>(null);
 
@@ -81,6 +84,7 @@ export const ShipmentsView: React.FC = () => {
       delayDays: editingShipment.delayDays,
       lastCheckpoint: editingShipment.lastCheckpoint,
       destinationLocation: editingShipment.destinationLocation,
+      telemetry: editingShipment.telemetry,
     });
     setEditingShipment(null);
   };
@@ -179,15 +183,24 @@ export const ShipmentsView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans">
-              {paginatedShipments.map((shp) => {
-                const prod = products.find((p) => p.id === shp.productId);
-                const carrier = carriers.find((c) => c.id === shp.carrierId);
-                const isOverdue = shp.isOverdue || (shp.delayDays > 0 && shp.status !== 'Delivered');
+              {paginatedShipments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-500">
+                    <Truck className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-slate-700">No Shipments Found (0 Active)</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Upload a dataset or dispatch a shipment to populate live tracking.</p>
+                  </td>
+                </tr>
+              ) : (
+                paginatedShipments.map((shp) => {
+                  const prod = products.find((p) => p.id === shp.productId);
+                  const carrier = carriers.find((c) => c.id === shp.carrierId);
+                  const isOverdue = shp.isOverdue || (shp.delayDays > 0 && shp.status !== 'Delivered');
 
-                return (
-                  <tr key={shp.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-4 font-mono font-bold text-slate-900">
-                      <div>{shp.shipmentNumber}</div>
+                  return (
+                    <tr key={shp.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-2.5 px-4 font-mono font-bold text-slate-900">
+                        <div>{shp.shipmentNumber}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{shp.trackingNumber}</div>
                     </td>
 
@@ -240,9 +253,16 @@ export const ShipmentsView: React.FC = () => {
                     <td className="py-2.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          onClick={() => setTrackedShipment(shp)}
+                          title="Track Vehicle & Live Route GPS Map"
+                          className="p-1 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-50"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => setSelectedShipment(shp)}
                           title="Inspect Telemetry"
-                          className="p-1 text-slate-500 hover:text-blue-600 rounded hover:bg-slate-100"
+                          className="p-1 text-slate-500 hover:text-slate-800 rounded hover:bg-slate-100"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </button>
@@ -257,7 +277,7 @@ export const ShipmentsView: React.FC = () => {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
@@ -330,7 +350,17 @@ export const ShipmentsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex justify-end">
+            <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setTrackedShipment(selectedShipment);
+                  setSelectedShipment(null);
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs flex items-center gap-1.5 shadow-xs"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Track Vehicle &amp; Live Route (GPS)</span>
+              </button>
               <button
                 onClick={() => setSelectedShipment(null)}
                 className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-medium text-xs"
@@ -345,47 +375,230 @@ export const ShipmentsView: React.FC = () => {
       {/* Edit Shipment Modal */}
       {editingShipment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-xs">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Edit Shipment {editingShipment.shipmentNumber}</h3>
-            <form onSubmit={handleUpdateShipment} className="space-y-3">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 text-xs max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Status</label>
-                <select
-                  value={editingShipment.status}
-                  onChange={(e) => setEditingShipment({ ...editingShipment, status: e.target.value as any })}
-                  className="w-full p-2 border border-slate-300 rounded text-xs"
-                >
-                  <option value="Processing">Processing</option>
-                  <option value="Dispatched">Dispatched</option>
-                  <option value="In Transit">In Transit</option>
-                  <option value="Delayed">Delayed</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+                <h3 className="text-sm font-bold text-slate-900">Edit Shipment {editingShipment.shipmentNumber}</h3>
+                <p className="text-[11px] text-slate-500">Modify freight status, transit checkpoints, assigned commercial vehicle & driver</p>
+              </div>
+              <button onClick={() => setEditingShipment(null)} className="text-slate-400 hover:text-slate-600 font-bold text-base">
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateShipment} className="space-y-3.5">
+              {/* Freight Status & Delays */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+                <div className="text-[10px] uppercase font-bold text-slate-500">Freight Status & Schedule</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Status</label>
+                    <select
+                      value={editingShipment.status}
+                      onChange={(e) => setEditingShipment({ ...editingShipment, status: e.target.value as any })}
+                      className="w-full p-2 border border-slate-300 rounded text-xs bg-white"
+                    >
+                      <option value="Processing">Processing</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="In Transit">In Transit</option>
+                      <option value="Delayed">Delayed</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Delay Days</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editingShipment.delayDays}
+                      onChange={(e) => setEditingShipment({ ...editingShipment, delayDays: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Last Reported Checkpoint</label>
+                  <input
+                    type="text"
+                    value={editingShipment.lastCheckpoint}
+                    onChange={(e) => setEditingShipment({ ...editingShipment, lastCheckpoint: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded text-xs bg-white"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Delay Days</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editingShipment.delayDays}
-                  onChange={(e) => setEditingShipment({ ...editingShipment, delayDays: Number(e.target.value) })}
-                  className="w-full p-2 border border-slate-300 rounded text-xs font-mono"
-                />
+              {/* Vehicle Specifications */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+                <div className="text-[10px] uppercase font-bold text-blue-700">Assigned Vehicle Telematics</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Vehicle Plate / Registration</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.vehicleNumber || 'TN-04-BJ-8821'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            vehicleNumber: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Vehicle Make / Model</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.vehicleType || 'Ashok Leyland 2820-6x2 Hauler'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            vehicleType: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Fleet Transporter</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.transporterName || 'TVS Supply Chain Logistics'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            transporterName: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Live Speed (km/h)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      value={editingShipment.telemetry?.speedKmph ?? 58}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            speedKmph: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Last Reported Checkpoint</label>
-                <input
-                  type="text"
-                  value={editingShipment.lastCheckpoint}
-                  onChange={(e) => setEditingShipment({ ...editingShipment, lastCheckpoint: e.target.value })}
-                  className="w-full p-2 border border-slate-300 rounded text-xs"
-                />
+              {/* Driver Details */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+                <div className="text-[10px] uppercase font-bold text-emerald-700">Driver Credentials</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Driver Name</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.driverName || 'K. Senthil Kumar'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            driverName: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Driver Phone</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.driverPhone || '+91 98401 23456'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            driverPhone: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Commercial License #</label>
+                    <input
+                      type="text"
+                      value={editingShipment.telemetry?.driverLicense || 'TN-02-2016-0038192'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            driverLicense: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Safety Driving Score</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editingShipment.telemetry?.safetyScore ?? 98}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setEditingShipment({
+                          ...editingShipment,
+                          telemetry: {
+                            ...(editingShipment.telemetry || {} as any),
+                            safetyScore: val,
+                          },
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded text-xs font-mono bg-white"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setEditingShipment(null)}
@@ -395,9 +608,9 @@ export const ShipmentsView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 text-white rounded font-medium hover:bg-blue-700"
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 shadow-xs"
                 >
-                  Save Changes
+                  Save Shipment & Telemetry
                 </button>
               </div>
             </form>
@@ -487,6 +700,18 @@ export const ShipmentsView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Live Vehicle Tracking Map Modal */}
+      {trackedShipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="max-w-6xl w-full my-auto">
+            <VehicleTrackingMap
+              shipment={shipments.find((s) => s.id === trackedShipment.id) || trackedShipment}
+              onClose={() => setTrackedShipment(null)}
+            />
           </div>
         </div>
       )}

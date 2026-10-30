@@ -271,6 +271,15 @@ app.post('/api/shipments', async (req, res) => {
   }
 });
 
+app.delete('/api/shipments/:id', async (req, res) => {
+  try {
+    await db.delete(shipments).where(eq(shipments.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete shipment' });
+  }
+});
+
 // Orders API
 app.get('/api/orders', async (req, res) => {
   try {
@@ -323,6 +332,15 @@ app.post('/api/orders', async (req, res) => {
     res.json(inserted[0]);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to save order' });
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    await db.delete(orders).where(eq(orders.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 
@@ -456,6 +474,65 @@ app.post('/api/audit-logs', async (req, res) => {
     res.json(inserted[0]);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to save audit log' });
+  }
+});
+
+// Entity Deletes
+app.delete('/api/disruptions/:id', async (req, res) => {
+  try {
+    await db.delete(disruptions).where(eq(disruptions.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete disruption' });
+  }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    await db.delete(products).where(eq(products.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+app.delete('/api/inventory/:id', async (req, res) => {
+  try {
+    await db.delete(inventory).where(eq(inventory.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete inventory record' });
+  }
+});
+
+app.delete('/api/recovery-plans/:id', async (req, res) => {
+  try {
+    await db.delete(recoveryPlans).where(eq(recoveryPlans.id, req.params.id));
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete recovery plan' });
+  }
+});
+
+// Clear single table
+app.post('/api/clear-table/:table', async (req, res) => {
+  const table = req.params.table.toLowerCase();
+  try {
+    if (table === 'orders') await db.delete(orders);
+    else if (table === 'shipments') await db.delete(shipments);
+    else if (table === 'inventory') await db.delete(inventory);
+    else if (table === 'suppliers') await db.delete(suppliers);
+    else if (table === 'products') await db.delete(products);
+    else if (table === 'warehouses') await db.delete(warehouses);
+    else if (table === 'carriers') await db.delete(carriers);
+    else if (table === 'disruptions') await db.delete(disruptions);
+    else if (table === 'recoveryplans' || table === 'recovery-plans') await db.delete(recoveryPlans);
+    else if (table === 'auditlogs' || table === 'audit-logs') await db.delete(auditLogs);
+    else return res.status(400).json({ error: `Unknown table ${table}` });
+
+    res.json({ success: true, message: `Table ${table} cleared completely.` });
+  } catch (err: any) {
+    res.status(500).json({ error: `Failed to clear table ${table}` });
   }
 });
 

@@ -11,14 +11,18 @@ import {
   RotateCcw,
   ExternalLink,
   ChevronRight,
+  Calendar,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CustomerOrder } from '../../types';
+import { ScoringBenchmarkCard } from '../common/ScoringBenchmarkCard';
 
 export const RiskAnalysisView: React.FC = () => {
   const { orders, products, setCurrentTab } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | 'High' | 'Medium' | 'Low'>('all');
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
 
@@ -33,6 +37,36 @@ export const RiskAnalysisView: React.FC = () => {
     setInventoryWeight(0.30);
     setSupplierWeight(0.20);
     setPriorityWeight(0.15);
+  };
+
+  const setPresetRange = (preset: 'all' | 'today' | '7days' | '30days' | 'oct2026' | 'nov2026') => {
+    if (preset === 'all') {
+      setFromDate('');
+      setToDate('');
+    } else if (preset === 'today') {
+      const today = '2026-10-30';
+      setFromDate(today);
+      setToDate(today);
+    } else if (preset === '7days') {
+      setFromDate('2026-10-23');
+      setToDate('2026-10-30');
+    } else if (preset === '30days') {
+      setFromDate('2026-10-01');
+      setToDate('2026-10-31');
+    } else if (preset === 'oct2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-10-31');
+    } else if (preset === 'nov2026') {
+      setFromDate('2026-11-01');
+      setToDate('2026-11-30');
+    }
+  };
+
+  const clearAllFilters = () => {
+    setFromDate('');
+    setToDate('');
+    setSearchQuery('');
+    setLevelFilter('all');
   };
 
   // Re-calculate orders dynamically if user tweaks weights in the simulator
@@ -62,13 +96,36 @@ export const RiskAnalysisView: React.FC = () => {
 
   const filteredOrders = useMemo(() => {
     return evaluatedOrders.filter((o) => {
-      const matchSearch =
-        o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        o.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+      // Date filter across orderDate and deliveryDeadline
+      if (fromDate) {
+        if (o.orderDate < fromDate && o.deliveryDeadline < fromDate) return false;
+      }
+      if (toDate) {
+        if (o.orderDate > toDate && o.deliveryDeadline > toDate) return false;
+      }
+
+      // Comprehensive search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const prod = products.find((p) => p.id === o.productId);
+        const match =
+          o.orderNumber.toLowerCase().includes(q) ||
+          o.customerName.toLowerCase().includes(q) ||
+          o.customerTier.toLowerCase().includes(q) ||
+          o.riskReason.toLowerCase().includes(q) ||
+          o.status.toLowerCase().includes(q) ||
+          o.orderDate.toLowerCase().includes(q) ||
+          o.deliveryDeadline.toLowerCase().includes(q) ||
+          (prod && prod.name.toLowerCase().includes(q)) ||
+          (prod && prod.sku.toLowerCase().includes(q));
+
+        if (!match) return false;
+      }
+
       const matchLevel = levelFilter === 'all' || o.dynamicLevel === levelFilter;
-      return matchSearch && matchLevel;
+      return matchLevel;
     });
-  }, [evaluatedOrders, searchQuery, levelFilter]);
+  }, [evaluatedOrders, searchQuery, fromDate, toDate, levelFilter, products]);
 
   const highRiskCount = evaluatedOrders.filter((o) => o.dynamicLevel === 'High').length;
   const mediumRiskCount = evaluatedOrders.filter((o) => o.dynamicLevel === 'Medium').length;
@@ -199,6 +256,9 @@ export const RiskAnalysisView: React.FC = () => {
         </div>
       </div>
 
+      {/* Logistics Scoring Benchmark Card */}
+      <ScoringBenchmarkCard compact />
+
       {/* Risk Tier Summaries */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div
@@ -246,36 +306,99 @@ export const RiskAnalysisView: React.FC = () => {
 
       {/* Orders Table with Risk Breakdown */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
-        {/* Table Filter Bar */}
-        <div className="p-3.5 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search customer name or order number..."
-              className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded text-xs"
-            />
+        {/* Table Filter Bar with Date-Wise Search */}
+        <div className="p-3.5 border-b border-slate-200 space-y-2.5 text-xs">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search date (e.g. 2026-10-29), order ref, customer, SKU..."
+                className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Date Pickers */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-300 rounded px-2 py-1">
+                <span className="text-slate-500 font-medium text-[11px]">From:</span>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-1 py-0.5 text-xs text-slate-800"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-300 rounded px-2 py-1">
+                <span className="text-slate-500 font-medium text-[11px]">To:</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-1 py-0.5 text-xs text-slate-800"
+                />
+              </div>
+
+              {/* Tier Filter */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded border border-slate-200">
+                {(['all', 'High', 'Medium', 'Low'] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    onClick={() => setLevelFilter(lvl)}
+                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                      levelFilter === lvl
+                        ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {lvl === 'all' ? 'All' : lvl}
+                  </button>
+                ))}
+              </div>
+
+              {(fromDate || toDate || searchQuery || levelFilter !== 'all') && (
+                <button
+                  onClick={clearAllFilters}
+                  className="px-2 py-1 text-slate-600 border border-slate-300 rounded hover:bg-slate-50 text-[11px]"
+                  title="Clear filters"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">Filter Tier:</span>
-            <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded border border-slate-200">
-              {(['all', 'High', 'Medium', 'Low'] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => setLevelFilter(lvl)}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                    levelFilter === lvl
-                      ? 'bg-white text-slate-900 font-semibold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {lvl === 'all' ? 'All Orders' : lvl}
-                </button>
-              ))}
-            </div>
+          {/* Quick Date Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap text-[11px] pt-1 border-t border-slate-100">
+            <span className="text-slate-400 font-medium">Quick Dates:</span>
+            <button
+              onClick={() => setPresetRange('all')}
+              className={`px-2 py-0.5 rounded ${!fromDate && !toDate ? 'bg-blue-600 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All
+            </button>
+            <button onClick={() => setPresetRange('today')} className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+              Today (30 Oct)
+            </button>
+            <button onClick={() => setPresetRange('7days')} className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+              Last 7 Days
+            </button>
+            <button onClick={() => setPresetRange('30days')} className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+              Last 30 Days
+            </button>
+            <button onClick={() => setPresetRange('oct2026')} className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+              October 2026
+            </button>
+            <button onClick={() => setPresetRange('nov2026')} className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+              November 2026
+            </button>
+
+            <span className="ml-auto text-slate-500 font-mono text-[11px]">
+              Showing <strong className="text-slate-800">{filteredOrders.length}</strong> matching orders
+            </span>
           </div>
         </div>
 

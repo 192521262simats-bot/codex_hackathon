@@ -111,6 +111,8 @@ interface AppContextType {
   loadScenarioB: () => void;
   resetToDefaultData: () => void;
   clearAllData: () => Promise<void>;
+  clearTable: (table: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products' | 'disruptions') => Promise<void>;
+  deleteRecord: (table: string, id: string) => Promise<void>;
   ingestDataset: (
     data: any[],
     tableHint?: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products',
@@ -142,7 +144,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isLoadingDb, setIsLoadingDb] = useState<boolean>(true);
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER_PROFILES[0]);
-  const [currentTab, setCurrentTab] = useState<string>('data');
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [activeDisruptionId, setActiveDisruptionId] = useState<string | null>(null);
   const [dataProvenance, setDataProvenance] = useState<DataProvenance>({
     sourceType: 'Connected Operational Source',
@@ -258,13 +260,80 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           console.warn('LocalStorage restore note:', e);
         }
 
-        if (hasDbRecords) {
+        const isAllDataCleared = localStorage.getItem('rippleguard_data_cleared') === 'true';
+
+        if (isAllDataCleared) {
+          // User explicitly requested all data to be removed: everything must remain 0!
+          setSuppliers([]);
+          setWarehouses([]);
+          setProducts([]);
+          setInventory([]);
+          setCarriers([]);
+          setShipments([]);
+          setOrders([]);
+          setDisruptions([]);
+          setRecoveryPlans([]);
+          setNotifications([]);
+          setAuditLogs([]);
+          setDataProvenance({
+            sourceType: 'Empty Clean Workspace',
+            recordCount: 0,
+            lastImportedAt: 'Zero records: Ready for your dataset',
+          });
+        } else if (hasDbRecords) {
+          // Apply table-level clear overrides if specific tables were wiped
+          if (localStorage.getItem('rippleguard_cleared_orders') === 'true') setOrders([]);
+          if (localStorage.getItem('rippleguard_cleared_shipments') === 'true') setShipments([]);
+          if (localStorage.getItem('rippleguard_cleared_inventory') === 'true') setInventory([]);
+          if (localStorage.getItem('rippleguard_cleared_suppliers') === 'true') setSuppliers([]);
+          if (localStorage.getItem('rippleguard_cleared_products') === 'true') setProducts([]);
+          if (localStorage.getItem('rippleguard_cleared_disruptions') === 'true') setDisruptions([]);
+
           setDataProvenance({
             sourceType: 'Connected Operational Source',
             lastImportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
             recordCount: (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value) ? ordRes.value.length : 0) +
                          (shpRes.status === 'fulfilled' && Array.isArray(shpRes.value) ? shpRes.value.length : 0),
           });
+        } else {
+          // If the user has cleared data previously or database is clean, do not restore demo data
+          const wasEverCleared = localStorage.getItem('rippleguard_was_cleared') === 'true';
+          if (wasEverCleared) {
+            setSuppliers([]);
+            setWarehouses([]);
+            setProducts([]);
+            setInventory([]);
+            setCarriers([]);
+            setShipments([]);
+            setOrders([]);
+            setDisruptions([]);
+            setRecoveryPlans([]);
+            setNotifications([]);
+            setAuditLogs([]);
+            setDataProvenance({
+              sourceType: 'Empty Clean Workspace',
+              recordCount: 0,
+              lastImportedAt: 'Zero records: Ready for your dataset',
+            });
+          } else {
+            // First time initialization only
+            setSuppliers(INITIAL_SUPPLIERS);
+            setWarehouses(INITIAL_WAREHOUSES);
+            setProducts(INITIAL_PRODUCTS);
+            setInventory(INITIAL_INVENTORY);
+            setCarriers(INITIAL_CARRIERS);
+            setShipments(INITIAL_SHIPMENTS);
+            setOrders(INITIAL_ORDERS);
+            setDisruptions(INITIAL_DISRUPTIONS);
+            setRecoveryPlans(INITIAL_RECOVERY_PLANS);
+            setNotifications(INITIAL_NOTIFICATIONS);
+            setAuditLogs(INITIAL_AUDIT_LOGS);
+            setDataProvenance({
+              sourceType: 'Connected Operational Source',
+              recordCount: INITIAL_ORDERS.length + INITIAL_SHIPMENTS.length,
+              lastImportedAt: 'Tamil Nadu Live Logistics Network',
+            });
+          }
         }
       } catch (err) {
         console.warn('Backend load notice:', err);
@@ -577,11 +646,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         details.expeditedCarrierId = 'car-2';
       } else {
         recoveryType = 'Expedited Delivery';
-        recommendedAction = `Reroute cargo via SwiftLine Air Cargo priority charter with 24/7 dedicated linehaul clearance.`;
-        reason = `No single supplier has verified buffer stock; air cargo bypassing congested sea ports recovers 3 critical days of lead time.`;
+        recommendedAction = `Reroute cargo via Pandian Express / TVS Supply Chain dedicated priority freight with 24/7 green corridor clearance.`;
+        reason = `Dedicated linehaul carrier bypassing congested NH 48 highway checkpoints recovers critical days of transit time.`;
         estimatedCost = Math.round(requiredQty * 28 + 2500);
-        expectedRecoveryDays = 2;
-        expectedRiskReductionPercent = 62;
+        expectedRecoveryDays = 1;
+        expectedRiskReductionPercent = 65;
         feasibility = 'Medium';
         availableQty = requiredQty;
         details.expeditedCarrierId = 'car-2';
@@ -918,6 +987,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       targetWarehouseId: data.targetWarehouseId || warehouses[0]?.id || 'wh-1',
     };
 
+    localStorage.removeItem('rippleguard_data_cleared');
+    localStorage.removeItem('rippleguard_was_cleared');
+    localStorage.removeItem('rippleguard_cleared_orders');
     setOrders((prev) => [newOrder, ...prev]);
 
     try {
@@ -933,6 +1005,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addSupplier = async (data: Partial<Supplier>) => {
+    localStorage.removeItem('rippleguard_data_cleared');
+    localStorage.removeItem('rippleguard_was_cleared');
+    localStorage.removeItem('rippleguard_cleared_suppliers');
     const newSupplier: Supplier = {
       id: data.id || `sup-${Date.now()}`,
       supplierNumber: data.supplierNumber || `SUP-${Date.now().toString().slice(-4)}`,
@@ -963,6 +1038,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addProduct = async (data: Partial<Product>) => {
+    localStorage.removeItem('rippleguard_data_cleared');
+    localStorage.removeItem('rippleguard_was_cleared');
+    localStorage.removeItem('rippleguard_cleared_products');
     const newProduct: Product = {
       id: data.id || `prod-${Date.now()}`,
       sku: data.sku || `SKU-${Date.now().toString().slice(-4)}`,
@@ -989,6 +1067,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addShipment = (shipment: Omit<Shipment, 'id' | 'shipmentNumber' | 'isOverdue'>) => {
+    localStorage.removeItem('rippleguard_data_cleared');
+    localStorage.removeItem('rippleguard_was_cleared');
+    localStorage.removeItem('rippleguard_cleared_shipments');
     const shipmentNumber = `SHP-${(3000 + shipments.length + 1).toString()}`;
     const newShipment: Shipment = {
       ...shipment,
@@ -1095,8 +1176,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  // User requests: "i want to add my own data usng supabase so no own data stimulation should be added"
+  // User requests: "even if i rmove the dataset its still showing the same value everything should be zero and i enter data again it should work"
   const clearAllData = async () => {
+    localStorage.setItem('rippleguard_data_cleared', 'true');
+    localStorage.setItem('rippleguard_was_cleared', 'true');
+    localStorage.setItem('rippleguard_cleared_orders', 'true');
+    localStorage.setItem('rippleguard_cleared_shipments', 'true');
+    localStorage.setItem('rippleguard_cleared_inventory', 'true');
+    localStorage.setItem('rippleguard_cleared_suppliers', 'true');
+    localStorage.setItem('rippleguard_cleared_products', 'true');
+    localStorage.setItem('rippleguard_cleared_disruptions', 'true');
+
     try {
       await fetch('/api/clear-all-data', { method: 'POST' });
     } catch (e) {
@@ -1120,23 +1210,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setDisruptions([]);
     setRecoveryPlans([]);
     setActiveDisruptionId(null);
+    setNotifications([]);
     setDataProvenance({
-      sourceType: 'Connected Operational Source',
+      sourceType: 'Empty Clean Workspace',
       recordCount: 0,
-      lastImportedAt: 'Cleared: Zero simulated data',
+      lastImportedAt: 'Cleared: Zero records active',
     });
-    setNotifications([
-      {
-        id: `notif-${Date.now()}`,
-        type: 'info',
-        title: 'Database Emptied for Live Data',
-        message: 'All simulated demonstration records removed. Ready for your custom records or CSV/JSON ingestion.',
-        severity: 'info',
-        timestamp: 'Just now',
-        read: false,
-        linkToTab: 'data',
-      },
-    ]);
+  };
+
+  const clearTable = async (table: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products' | 'disruptions') => {
+    localStorage.setItem(`rippleguard_cleared_${table}`, 'true');
+    localStorage.setItem('rippleguard_was_cleared', 'true');
+    localStorage.removeItem(`rippleguard_data_${table}`);
+
+    if (table === 'orders') setOrders([]);
+    else if (table === 'shipments') setShipments([]);
+    else if (table === 'inventory') setInventory([]);
+    else if (table === 'suppliers') setSuppliers([]);
+    else if (table === 'products') setProducts([]);
+    else if (table === 'disruptions') {
+      setDisruptions([]);
+      setActiveDisruptionId(null);
+    }
+
+    try {
+      await fetch(`/api/clear-table/${table}`, { method: 'POST' });
+    } catch (e) {
+      console.warn('Backend clear-table error:', e);
+    }
+  };
+
+  const deleteRecord = async (table: string, id: string) => {
+    if (table === 'orders') setOrders((prev) => prev.filter((o) => o.id !== id));
+    else if (table === 'shipments') setShipments((prev) => prev.filter((s) => s.id !== id));
+    else if (table === 'inventory') setInventory((prev) => prev.filter((i) => i.id !== id));
+    else if (table === 'suppliers') setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    else if (table === 'products') setProducts((prev) => prev.filter((p) => p.id !== id));
+    else if (table === 'disruptions') {
+      setDisruptions((prev) => prev.filter((d) => d.id !== id));
+      if (activeDisruptionId === id) setActiveDisruptionId(null);
+    }
+
+    try {
+      await fetch(`/api/${table}/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem(`rippleguard_data_${table}`);
+      if (stored) {
+        const list = JSON.parse(stored);
+        localStorage.setItem(`rippleguard_data_${table}`, JSON.stringify(list.filter((x: any) => x.id !== id)));
+      }
+    } catch (e) {}
   };
 
   const ingestDataset = async (
@@ -1144,6 +1269,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     tableHint: 'orders' | 'shipments' | 'inventory' | 'suppliers' | 'products' = 'orders',
     sourceName: string = 'User Upload'
   ): Promise<{ success: boolean; count: number; table: string; errors: string[] }> => {
+    // When the user enters data again, remove any clear flags
+    localStorage.removeItem('rippleguard_data_cleared');
+    localStorage.removeItem('rippleguard_was_cleared');
+    localStorage.removeItem(`rippleguard_cleared_${tableHint}`);
+
     const { targetTable, records, auxiliaryProducts, auxiliaryShipments } = ingestCustomData(
       data,
       tableHint,
@@ -1153,6 +1283,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (records.length === 0) {
       return { success: false, count: 0, table: targetTable, errors: ['No valid records could be processed from file.'] };
     }
+
+    localStorage.removeItem(`rippleguard_cleared_${targetTable}`);
+    if (auxiliaryShipments.length > 0) localStorage.removeItem('rippleguard_cleared_shipments');
+    if (auxiliaryProducts.length > 0) localStorage.removeItem('rippleguard_cleared_products');
 
     if (targetTable === 'orders') {
       setOrders(records);
@@ -1312,6 +1446,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loadScenarioB,
         resetToDefaultData,
         clearAllData,
+        clearTable,
+        deleteRecord,
         ingestDataset,
         importRecords,
         exportDataJSON,

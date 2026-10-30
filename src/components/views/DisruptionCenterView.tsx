@@ -11,9 +11,12 @@ import {
   Filter,
   Flame,
   Search,
+  Navigation,
+  Truck,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Disruption, DisruptionSeverity, DisruptionType } from '../../types';
+import { Disruption, DisruptionSeverity, DisruptionType, Shipment } from '../../types';
+import { VehicleTrackingMap } from '../common/VehicleTrackingMap';
 
 export const DisruptionCenterView: React.FC = () => {
   const {
@@ -24,12 +27,14 @@ export const DisruptionCenterView: React.FC = () => {
     warehouses,
     carriers,
     products,
+    shipments,
     setActiveDisruptionId,
     setCurrentTab,
   } = useApp();
 
   const [showModal, setShowModal] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [trackedShipment, setTrackedShipment] = useState<Shipment | null>(null);
 
   const [formData, setFormData] = useState({
     type: 'Supplier Delay' as DisruptionType,
@@ -173,7 +178,18 @@ export const DisruptionCenterView: React.FC = () => {
 
               {/* Actions Footer */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 text-xs">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => {
+                      const linked = shipments.find((s) => disr.affectedShipmentIds.includes(s.id)) || shipments[0];
+                      setTrackedShipment(linked);
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium flex items-center gap-1.5 shadow-xs transition-colors"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Track Vehicle &amp; Route Map (GPS)</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setActiveDisruptionId(disr.id);
@@ -210,6 +226,18 @@ export const DisruptionCenterView: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Vehicle Tracking Map Modal */}
+      {trackedShipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="max-w-6xl w-full my-auto">
+            <VehicleTrackingMap
+              shipment={shipments.find((s) => s.id === trackedShipment.id) || trackedShipment}
+              onClose={() => setTrackedShipment(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Disruption Modal */}
       {showModal && (

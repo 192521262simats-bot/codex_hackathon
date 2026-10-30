@@ -20,6 +20,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { ScoringBenchmarkCard } from '../common/ScoringBenchmarkCard';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -45,7 +46,7 @@ export const DashboardView: React.FC = () => {
     delayDays: 3,
     affectedQuantity: 500,
     severity: 'Major' as any,
-    description: 'Port container congestion and customs hold causing outbound delay.',
+    description: 'NH 48 Walajapet Highway waterlogging and tanker hold causing outbound trailer delay from SIPCOT Sriperumbudur.',
   });
 
   // Calculate dynamic KPIs
@@ -216,6 +217,9 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Operational Scoring Benchmark Panel */}
+      <ScoringBenchmarkCard />
 
       {/* Main Grid: Sections A & B & C & D */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

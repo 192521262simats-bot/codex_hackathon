@@ -63,7 +63,7 @@ export const Header: React.FC = () => {
           <button
             onClick={loadScenarioA}
             className="px-2.5 py-1 rounded text-slate-700 hover:text-blue-700 hover:bg-white transition-colors flex items-center gap-1.5"
-            title="Demonstration Scenario A: Port congestion delay at Global Chipsets Corp"
+            title="Scenario A: NH 48 corridor delay at SIPCOT High-Tech Semiconductors (Sriperumbudur)"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
             <span>Scenario A: Supplier Delay</span>
@@ -71,7 +71,7 @@ export const Header: React.FC = () => {
           <button
             onClick={loadScenarioB}
             className="px-2.5 py-1 rounded text-slate-700 hover:text-blue-700 hover:bg-white transition-colors flex items-center gap-1.5"
-            title="Demonstration Scenario B: Warehouse deficit at Chicago Hub vs Reno surplus"
+            title="Scenario B: Stock deficit at Chennai Oragadam Hub vs Coimbatore Peelamedu surplus"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             <span>Scenario B: Stock Transfer</span>

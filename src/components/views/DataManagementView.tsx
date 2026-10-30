@@ -37,6 +37,8 @@ export const DataManagementView: React.FC = () => {
     exportDataJSON,
     exportEntityCSV,
     clearAllData,
+    clearTable,
+    deleteRecord,
     ingestDataset,
     setCurrentTab,
   } = useApp();
@@ -67,6 +69,7 @@ export const DataManagementView: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
+  const [clearMode, setClearMode] = useState<'table' | 'all'>('table');
 
   // Form data for creating
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -86,6 +89,16 @@ export const DataManagementView: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
 
+    // If active table or all data has been cleared, strictly return empty array
+    if (
+      localStorage.getItem('rippleguard_data_cleared') === 'true' ||
+      localStorage.getItem(`rippleguard_cleared_${activeTable}`) === 'true'
+    ) {
+      setRecords([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // 1. Try querying Supabase client directly
       const { data, error } = await supabase.from(activeTable).select('*');
@@ -100,7 +113,8 @@ export const DataManagementView: React.FC = () => {
       const apiRes = await fetch(`/api/${activeTable}`);
       if (apiRes.ok) {
         const apiData = await apiRes.json();
-        if (Array.isArray(apiData) && apiData.length > 0) {
+        if (Array.isArray(apiData)) {
+          // If backend returns array (even 0 length), respect it directly!
           setRecords(apiData);
           setIsLoading(false);
           return;
@@ -119,14 +133,7 @@ export const DataManagementView: React.FC = () => {
           ? appSuppliers
           : appProducts;
 
-      if (appRecords && appRecords.length > 0) {
-        setRecords(appRecords);
-        setIsLoading(false);
-        return;
-      }
-
-      // Default: clean empty array (no artificial data)
-      setRecords([]);
+      setRecords(appRecords || []);
     } catch (err: any) {
       console.warn('Fetch note:', err);
       setRecords([]);
@@ -301,20 +308,9 @@ export const DataManagementView: React.FC = () => {
   const handleDelete = async (id: string) => {
     setIsLoading(true);
     try {
-      await supabase.from(activeTable).delete().eq('id', id);
-      await fetch(`/api/${activeTable}/${id}`, { method: 'DELETE' });
-
-      try {
-        const stored = localStorage.getItem(`rippleguard_data_${activeTable}`);
-        if (stored) {
-          const list = JSON.parse(stored);
-          const updated = list.filter((item: any) => item.id !== id);
-          localStorage.setItem(`rippleguard_data_${activeTable}`, JSON.stringify(updated));
-        }
-      } catch (e) {}
-
+      await deleteRecord(activeTable, id);
+      setRecords((prev) => prev.filter((item) => item.id !== id));
       showNotification(`Record ${id} removed.`);
-      fetchRecords();
     } catch (err: any) {
       showNotification(`Failed to delete record: ${err.message}`, true);
     } finally {
@@ -326,12 +322,27 @@ export const DataManagementView: React.FC = () => {
   const handleClearTable = async () => {
     setIsLoading(true);
     try {
-      await clearAllData();
-      showNotification(`All records wiped. Database is clean and ready for your dataset.`);
+      await clearTable(activeTable);
+      setRecords([]);
+      showNotification(`All records in ${activeTable} wiped. Table is now completely empty.`);
       setShowClearConfirm(false);
-      fetchRecords();
     } catch (err: any) {
       showNotification(`Failed to clear table: ${err.message}`, true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Wipe all system tables (Everything to 0)
+  const handleClearAllData = async () => {
+    setIsLoading(true);
+    try {
+      await clearAllData();
+      setRecords([]);
+      showNotification(`All datasets wiped across all modules. Everything is now 0 and ready for your data.`);
+      setShowClearConfirm(false);
+    } catch (err: any) {
+      showNotification(`Failed to wipe all data: ${err.message}`, true);
     } finally {
       setIsLoading(false);
     }
@@ -380,12 +391,27 @@ export const DataManagementView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setShowClearConfirm(true)}
-            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded text-xs font-medium shadow-xs transition-colors flex items-center gap-1.5"
-            title="Wipe table records"
+            onClick={() => {
+              setClearMode('table');
+              setShowClearConfirm(true);
+            }}
+            className="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded text-xs font-medium shadow-xs transition-colors flex items-center gap-1.5"
+            title={`Wipe all records from ${activeTable}`}
           >
             <Trash2 className="w-3.5 h-3.5 text-red-600" />
-            <span>Clear Table</span>
+            <span>Clear Table ({activeTable})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setClearMode('all');
+              setShowClearConfirm(true);
+            }}
+            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium shadow-xs transition-colors flex items-center gap-1.5"
+            title="Wipe all datasets across entire application and reset all counters to 0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Everything to 0</span>
           </button>
 
           <button
@@ -1128,10 +1154,18 @@ export const DataManagementView: React.FC = () => {
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-xs">
             <div className="flex items-center gap-2 text-red-600 font-bold mb-2">
               <AlertTriangle className="w-5 h-5" />
-              <span>Wipe {activeTable} Table?</span>
+              <span>{clearMode === 'all' ? 'Reset Everything to 0?' : `Wipe ${activeTable} Table?`}</span>
             </div>
             <p className="text-slate-600 mb-4">
-              This will remove all records in <strong className="font-mono text-slate-900">{activeTable}</strong> across Supabase, Cloud SQL, and memory. The table will be left completely empty for your dataset.
+              {clearMode === 'all' ? (
+                <>
+                  This will completely clear <strong>all orders, shipments, inventory, suppliers, disruptions, and plans</strong> across the system. All counters, KPIs, and charts will drop to <strong>0</strong>. Your workspace will be completely empty and ready for fresh dataset entry.
+                </>
+              ) : (
+                <>
+                  This will remove all records in <strong className="font-mono text-slate-900">{activeTable}</strong> across Supabase, Cloud SQL, and memory. The table counter will drop to <strong>0</strong>.
+                </>
+              )}
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -1141,10 +1175,10 @@ export const DataManagementView: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={handleClearTable}
-                className="px-4 py-1.5 bg-red-600 text-white rounded font-medium hover:bg-red-700"
+                onClick={clearMode === 'all' ? handleClearAllData : handleClearTable}
+                className="px-4 py-1.5 bg-red-600 text-white rounded font-medium hover:bg-red-700 shadow-xs"
               >
-                Confirm Wipe
+                {clearMode === 'all' ? 'Confirm Reset Everything to 0' : `Confirm Wipe ${activeTable}`}
               </button>
             </div>
           </div>

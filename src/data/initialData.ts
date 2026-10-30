@@ -14,35 +14,37 @@ import {
   StockStatus,
   CustomerTier,
   OrderPriority,
+  VehicleDriverTelemetry,
+  RouteCheckpoint,
 } from '../types';
 
 export const INITIAL_USER_PROFILES: UserProfile[] = [
   {
     id: 'user-1',
-    name: 'Elena Rostova',
-    email: 'elena.rostova@rippleguard.ai',
+    name: 'K. Senthil Kumar',
+    email: 'senthil.kumar@rippleguard.in',
     role: 'Logistics Manager',
-    title: 'Director of Global Supply Chain Operations',
-    department: 'Logistics Control Tower',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
+    title: 'Director of Tamil Nadu Supply Chain Operations',
+    department: 'Tamil Nadu Logistics Control Tower (Chennai)',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
   },
   {
     id: 'user-2',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@rippleguard.ai',
+    name: 'R. Muruganathan',
+    email: 'muruganathan.r@rippleguard.in',
     role: 'Warehouse Operator',
-    title: 'Lead Logistics & Fulfillment Supervisor',
-    department: 'Warehouse Network Operations',
+    title: 'Lead Hub Supervisor (Chennai Oragadam Hub)',
+    department: 'Warehouse Network Operations (Tamil Nadu)',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
   },
   {
     id: 'user-3',
-    name: 'David Chen',
-    email: 'david.chen@rippleguard.ai',
+    name: 'Ananya Raman',
+    email: 'ananya.raman@rippleguard.in',
     role: 'Procurement Approver',
-    title: 'VP of Global Strategic Sourcing',
-    department: 'Procurement & Vendor Alliances',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=256',
+    title: 'VP of Strategic Sourcing & Logistics',
+    department: 'Procurement & Vendor Alliances (Coimbatore)',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
   },
 ];
 
@@ -50,140 +52,140 @@ export const INITIAL_SUPPLIERS: Supplier[] = [
   {
     id: 'sup-1',
     supplierNumber: 'SUP-1001',
-    name: 'Global Chipsets Corp',
-    country: 'Taiwan',
-    location: 'Hsinchu Science Park',
+    name: 'SIPCOT High-Tech Semiconductors',
+    country: 'Tamil Nadu, India',
+    location: 'Sriperumbudur Industrial Park, Kanchipuram',
     productsSupplied: ['prod-1', 'prod-7', 'prod-18'],
     reliabilityScore: 78,
-    avgDeliveryDays: 14,
+    avgDeliveryDays: 3,
     status: 'Disrupted',
-    contactEmail: 'logistics@globalchipsets.tw',
-    leadTimeVarianceDays: 4,
+    contactEmail: 'logistics@sipcot-semicon.tn.gov.in',
+    leadTimeVarianceDays: 3,
     qualityRating: 4.8,
   },
   {
     id: 'sup-2',
     supplierNumber: 'SUP-1002',
-    name: 'Pacific Polymers Inc',
-    country: 'United States',
-    location: 'Portland, OR',
+    name: 'Tamil Nadu Polymers & Resins Ltd',
+    country: 'Tamil Nadu, India',
+    location: 'Manali Industrial Zone, Chennai',
     productsSupplied: ['prod-6', 'prod-17', 'prod-20'],
     reliabilityScore: 94,
-    avgDeliveryDays: 5,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'orders@pacificpolymers.com',
+    contactEmail: 'orders@tnpolymers.co.in',
     leadTimeVarianceDays: 1,
     qualityRating: 4.9,
   },
   {
     id: 'sup-3',
     supplierNumber: 'SUP-1003',
-    name: 'Apex Microelectronics',
-    country: 'South Korea',
-    location: 'Suwon Industrial Zone',
+    name: 'Kovai Precision Microelectronics',
+    country: 'Tamil Nadu, India',
+    location: 'Peelamedu Tech Park, Coimbatore',
     productsSupplied: ['prod-1', 'prod-5', 'prod-19'],
-    reliabilityScore: 91,
-    avgDeliveryDays: 11,
+    reliabilityScore: 92,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'export@apexmicro.kr',
-    leadTimeVarianceDays: 2,
+    contactEmail: 'export@kovaiprecision.in',
+    leadTimeVarianceDays: 1,
     qualityRating: 4.7,
   },
   {
     id: 'sup-4',
     supplierNumber: 'SUP-1004',
-    name: 'Nordic Precision Steel',
-    country: 'Sweden',
-    location: 'Gothenburg Hub',
+    name: 'Salem Steel & Alloy Works',
+    country: 'Tamil Nadu, India',
+    location: 'Salem Steel Plant Zone, Salem',
     productsSupplied: ['prod-3', 'prod-8', 'prod-13'],
     reliabilityScore: 96,
-    avgDeliveryDays: 9,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'dispatch@nordicsteel.se',
+    contactEmail: 'dispatch@salemsteelworks.com',
     leadTimeVarianceDays: 1,
     qualityRating: 4.95,
   },
   {
     id: 'sup-5',
     supplierNumber: 'SUP-1005',
-    name: 'Titan Power Systems',
-    country: 'Japan',
-    location: 'Yokohama Tech Cluster',
+    name: 'Titan Power Systems India',
+    country: 'Tamil Nadu, India',
+    location: 'Hosur SIPCOT Phase-2, Krishnagiri',
     productsSupplied: ['prod-4', 'prod-11', 'prod-12'],
     reliabilityScore: 82,
-    avgDeliveryDays: 12,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'support@titanpower.jp',
-    leadTimeVarianceDays: 3,
+    contactEmail: 'support@titanpower.co.in',
+    leadTimeVarianceDays: 2,
     qualityRating: 4.85,
   },
   {
     id: 'sup-6',
     supplierNumber: 'SUP-1006',
-    name: 'Shenzhen ElectroFab',
-    country: 'China',
-    location: 'Baoan District, Shenzhen',
+    name: 'Guindy Electro-Mechanical Components',
+    country: 'Tamil Nadu, India',
+    location: 'Guindy Industrial Estate, Chennai',
     productsSupplied: ['prod-2', 'prod-7', 'prod-15'],
-    reliabilityScore: 88,
-    avgDeliveryDays: 10,
+    reliabilityScore: 89,
+    avgDeliveryDays: 1,
     status: 'Active',
-    contactEmail: 'sales@szelectrofab.cn',
-    leadTimeVarianceDays: 2,
+    contactEmail: 'sales@guindyelectro.in',
+    leadTimeVarianceDays: 1,
     qualityRating: 4.6,
   },
   {
     id: 'sup-7',
     supplierNumber: 'SUP-1007',
-    name: 'Rheinland Sensorik GmbH',
-    country: 'Germany',
-    location: 'Stuttgart Automation Valley',
+    name: 'Tiruchirappalli Heavy Instrumentation',
+    country: 'Tamil Nadu, India',
+    location: 'BHEL Ancillary Hub, Thuvakudi, Trichy',
     productsSupplied: ['prod-2', 'prod-9', 'prod-16'],
     reliabilityScore: 97,
-    avgDeliveryDays: 6,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'eu.orders@rheinlandsensorik.de',
+    contactEmail: 'orders@trichyheavy.in',
     leadTimeVarianceDays: 1,
     qualityRating: 4.98,
   },
   {
     id: 'sup-8',
     supplierNumber: 'SUP-1008',
-    name: 'Alliance Packaging Ltd',
-    country: 'United States',
-    location: 'Chicago, IL',
+    name: 'Sivakasi Industrial Packaging Corp',
+    country: 'Tamil Nadu, India',
+    location: 'Sivakasi Packaging Corridor, Virudhunagar',
     productsSupplied: ['prod-6', 'prod-17'],
     reliabilityScore: 95,
-    avgDeliveryDays: 3,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'service@alliancepkg.com',
+    contactEmail: 'service@sivakasipackaging.in',
     leadTimeVarianceDays: 1,
     qualityRating: 4.75,
   },
   {
     id: 'sup-9',
     supplierNumber: 'SUP-1009',
-    name: 'Kyoto Opto-Tech',
-    country: 'Japan',
-    location: 'Kyoto High-Tech Corridor',
+    name: 'Erode Opto-Sensors & Telematics',
+    country: 'Tamil Nadu, India',
+    location: 'Perundurai SIPCOT, Erode',
     productsSupplied: ['prod-5', 'prod-15', 'prod-16'],
     reliabilityScore: 93,
-    avgDeliveryDays: 8,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'shipments@kyotoot.jp',
-    leadTimeVarianceDays: 2,
+    contactEmail: 'shipments@erodeopto.co.in',
+    leadTimeVarianceDays: 1,
     qualityRating: 4.9,
   },
   {
     id: 'sup-10',
     supplierNumber: 'SUP-1010',
-    name: 'Horizon Energy Storage',
-    country: 'United States',
-    location: 'Austin, TX',
+    name: 'Ranipet Power Storage & Cells',
+    country: 'Tamil Nadu, India',
+    location: 'Ranipet SIPCOT Industrial Complex, Ranipet',
     productsSupplied: ['prod-4', 'prod-14', 'prod-20'],
-    reliabilityScore: 89,
-    avgDeliveryDays: 4,
+    reliabilityScore: 90,
+    avgDeliveryDays: 2,
     status: 'Active',
-    contactEmail: 'b2b@horizonenergy.us',
+    contactEmail: 'b2b@ranipetpower.in',
     leadTimeVarianceDays: 1,
     qualityRating: 4.8,
   },
@@ -192,88 +194,87 @@ export const INITIAL_SUPPLIERS: Supplier[] = [
 export const INITIAL_WAREHOUSES: Warehouse[] = [
   {
     id: 'wh-1',
-    code: 'WH-NORTH',
-    name: 'Chicago Central Logistics Hub',
-    city: 'Chicago, IL',
-    region: 'Midwest',
-    capacityUnits: 45000,
+    code: 'WH-TN-CHN',
+    name: 'Chennai Oragadam Auto & Electronics Hub',
+    city: 'Chennai (Oragadam), Tamil Nadu',
+    region: 'North Tamil Nadu',
+    capacityUnits: 55000,
     currentUtilizationPercent: 88,
-    manager: 'Sarah Jenkins',
+    manager: 'R. Muruganathan',
   },
   {
     id: 'wh-2',
-    code: 'WH-WEST',
-    name: 'Reno Pacific Gateway Center',
-    city: 'Reno, NV',
-    region: 'West Coast',
-    capacityUnits: 60000,
+    code: 'WH-TN-CBE',
+    name: 'Coimbatore Peelamedu Logistics & Textile Park',
+    city: 'Coimbatore (Peelamedu), Tamil Nadu',
+    region: 'West Tamil Nadu',
+    capacityUnits: 65000,
     currentUtilizationPercent: 62,
-    manager: 'Craig Peterson',
+    manager: 'K. Balakrishnan',
   },
   {
     id: 'wh-3',
-    code: 'WH-SOUTH',
-    name: 'Dallas Cross-Dock Terminal',
-    city: 'Dallas, TX',
-    region: 'South',
+    code: 'WH-TN-MDU',
+    name: 'Madurai Kappalur Multimodal Cargo Terminal',
+    city: 'Madurai (Kappalur), Tamil Nadu',
+    region: 'South Tamil Nadu',
     capacityUnits: 50000,
     currentUtilizationPercent: 74,
-    manager: 'Amanda Silva',
+    manager: 'M. Sivakumar',
   },
   {
     id: 'wh-4',
-    code: 'WH-EAST',
-    name: 'Newark Deepwater Depot',
-    city: 'Newark, NJ',
-    region: 'Northeast',
-    capacityUnits: 40000,
+    code: 'WH-TN-HSR',
+    name: 'Hosur SIPCOT Industrial Logistics Depot',
+    city: 'Hosur (SIPCOT Phase-1), Tamil Nadu',
+    region: 'Northwest Tamil Nadu',
+    capacityUnits: 45000,
     currentUtilizationPercent: 81,
-    manager: 'Robert O’Connor',
+    manager: 'P. Anandavalli',
   },
   {
     id: 'wh-5',
-    code: 'WH-CENTRAL',
-    name: 'Kansas City Heartland Facility',
-    city: 'Kansas City, MO',
-    region: 'Central',
-    capacityUnits: 35000,
+    code: 'WH-TN-TCR',
+    name: 'Tuticorin VOC Port Inland Container Station',
+    city: 'Thoothukudi (Harbour Estate), Tamil Nadu',
+    region: 'Coastal South Tamil Nadu',
+    capacityUnits: 40000,
     currentUtilizationPercent: 69,
-    manager: 'Todd Miller',
+    manager: 'J. Antony Raj',
   },
 ];
 
 export const INITIAL_PRODUCTS: Product[] = [
-  { id: 'prod-1', sku: 'MCU-9400', name: 'Industrial Microcontroller Unit', category: 'Semiconductors', unitPrice: 145.0, primarySupplierId: 'sup-1', criticalComponent: true, minLeadTimeDays: 14 },
-  { id: 'prod-2', sku: 'SNS-4200', name: 'Multi-Axis Vibration Sensor Array', category: 'Sensors', unitPrice: 89.5, primarySupplierId: 'sup-7', criticalComponent: true, minLeadTimeDays: 7 },
-  { id: 'prod-3', sku: 'FST-8100', name: 'High-Tensile Aerospace Fasteners', category: 'Hardware', unitPrice: 18.2, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 5 },
-  { id: 'prod-4', sku: 'BAT-6500', name: 'Lithium-Ion 48V Power Module', category: 'Power & Storage', unitPrice: 520.0, primarySupplierId: 'sup-5', criticalComponent: true, minLeadTimeDays: 12 },
-  { id: 'prod-5', sku: 'OPT-3300', name: 'Fiber-Optic Optical Transceiver', category: 'Networking', unitPrice: 210.0, primarySupplierId: 'sup-9', criticalComponent: true, minLeadTimeDays: 8 },
-  { id: 'prod-6', sku: 'HSG-1100', name: 'Polycarbonate Sealed Housing', category: 'Enclosures', unitPrice: 42.0, primarySupplierId: 'sup-2', criticalComponent: false, minLeadTimeDays: 4 },
-  { id: 'prod-7', sku: 'FPG-7800', name: 'High-Density Embedded FPGA Board', category: 'Semiconductors', unitPrice: 380.0, primarySupplierId: 'sup-1', criticalComponent: true, minLeadTimeDays: 15 },
-  { id: 'prod-8', sku: 'BRG-5500', name: 'Ceramic Precision Ball Bearing', category: 'Mechanical', unitPrice: 65.0, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 6 },
-  { id: 'prod-9', sku: 'ACT-2900', name: 'Servo Electro-Hydraulic Actuator', category: 'Motion Control', unitPrice: 310.0, primarySupplierId: 'sup-7', criticalComponent: true, minLeadTimeDays: 9 },
-  { id: 'prod-10', sku: 'THM-1050', name: 'Industrial Thermal Paste (300ml)', category: 'Consumables', unitPrice: 24.0, primarySupplierId: 'sup-2', criticalComponent: false, minLeadTimeDays: 3 },
-  { id: 'prod-11', sku: 'RLY-6200', name: 'Solid-State Heavy Smart Relay', category: 'Electrical', unitPrice: 75.0, primarySupplierId: 'sup-5', criticalComponent: false, minLeadTimeDays: 7 },
-  { id: 'prod-12', sku: 'MOT-8800', name: 'High-Torque Brushless DC Motor', category: 'Motion Control', unitPrice: 285.0, primarySupplierId: 'sup-5', criticalComponent: true, minLeadTimeDays: 11 },
-  { id: 'prod-13', sku: 'BUS-4400', name: 'Pure Oxygen-Free Copper Busbar', category: 'Raw Metals', unitPrice: 55.0, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 5 },
-  { id: 'prod-14', sku: 'BRK-9100', name: 'Thermal-Magnetic Circuit Breaker', category: 'Electrical', unitPrice: 115.0, primarySupplierId: 'sup-10', criticalComponent: true, minLeadTimeDays: 6 },
-  { id: 'prod-15', sku: 'DSP-3600', name: 'Rugged Touch HMI Display Panel', category: 'Displays', unitPrice: 440.0, primarySupplierId: 'sup-6', criticalComponent: true, minLeadTimeDays: 10 },
-  { id: 'prod-16', sku: 'ANT-7200', name: 'Wideband Industrial RF Antenna', category: 'Telecommunications', unitPrice: 62.0, primarySupplierId: 'sup-9', criticalComponent: false, minLeadTimeDays: 7 },
-  { id: 'prod-17', sku: 'GSK-1900', name: 'Viton Fluoropolymer Gasket Seal', category: 'Enclosures', unitPrice: 14.5, primarySupplierId: 'sup-8', criticalComponent: false, minLeadTimeDays: 4 },
-  { id: 'prod-18', sku: 'CAP-5100', name: 'High-Voltage Ceramic Capacitor', category: 'Passive Components', unitPrice: 8.5, primarySupplierId: 'sup-1', criticalComponent: false, minLeadTimeDays: 10 },
-  { id: 'prod-19', sku: 'GTW-8300', name: 'Modbus Ethernet Edge Gateway', category: 'Networking', unitPrice: 495.0, primarySupplierId: 'sup-3', criticalComponent: true, minLeadTimeDays: 9 },
-  { id: 'prod-20', sku: 'REG-2200', name: 'Precision Linear Voltage Regulator', category: 'Semiconductors', unitPrice: 32.0, primarySupplierId: 'sup-10', criticalComponent: false, minLeadTimeDays: 5 },
+  { id: 'prod-1', sku: 'MCU-9400', name: 'Automotive Microcontroller Unit (32-Bit)', category: 'Semiconductors', unitPrice: 1450.0, primarySupplierId: 'sup-1', criticalComponent: true, minLeadTimeDays: 3 },
+  { id: 'prod-2', sku: 'SNS-4200', name: 'Multi-Axis Vibration Sensor Array', category: 'Sensors', unitPrice: 890.0, primarySupplierId: 'sup-7', criticalComponent: true, minLeadTimeDays: 2 },
+  { id: 'prod-3', sku: 'FST-8100', name: 'High-Tensile Aerospace Fasteners (Grade 8)', category: 'Hardware', unitPrice: 180.0, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-4', sku: 'BAT-6500', name: 'EV Lithium-Ion 48V Power Module', category: 'Power & Storage', unitPrice: 5200.0, primarySupplierId: 'sup-5', criticalComponent: true, minLeadTimeDays: 3 },
+  { id: 'prod-5', sku: 'OPT-3300', name: 'Fiber-Optic Optical Transceiver (10G)', category: 'Networking', unitPrice: 2100.0, primarySupplierId: 'sup-9', criticalComponent: true, minLeadTimeDays: 2 },
+  { id: 'prod-6', sku: 'HSG-1100', name: 'IP67 Polycarbonate Sealed Housing', category: 'Enclosures', unitPrice: 420.0, primarySupplierId: 'sup-2', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-7', sku: 'FPG-7800', name: 'Embedded Automotive FPGA Board', category: 'Semiconductors', unitPrice: 3800.0, primarySupplierId: 'sup-1', criticalComponent: true, minLeadTimeDays: 4 },
+  { id: 'prod-8', sku: 'BRG-5500', name: 'Ceramic Precision Wheel Hub Bearing', category: 'Mechanical', unitPrice: 650.0, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-9', sku: 'ACT-2900', name: 'Electro-Hydraulic Servo Actuator', category: 'Motion Control', unitPrice: 3100.0, primarySupplierId: 'sup-7', criticalComponent: true, minLeadTimeDays: 3 },
+  { id: 'prod-10', sku: 'THM-1050', name: 'Industrial Thermal Conductive Paste', category: 'Consumables', unitPrice: 240.0, primarySupplierId: 'sup-2', criticalComponent: false, minLeadTimeDays: 1 },
+  { id: 'prod-11', sku: 'RLY-6200', name: 'Heavy-Duty Smart Solid-State Relay', category: 'Electrical', unitPrice: 750.0, primarySupplierId: 'sup-5', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-12', sku: 'MOT-8800', name: 'Brushless DC High-Torque Drive Motor', category: 'Motion Control', unitPrice: 2850.0, primarySupplierId: 'sup-5', criticalComponent: true, minLeadTimeDays: 3 },
+  { id: 'prod-13', sku: 'BUS-4400', name: 'Pure Oxygen-Free Copper Busbar (200A)', category: 'Raw Metals', unitPrice: 550.0, primarySupplierId: 'sup-4', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-14', sku: 'BRK-9100', name: 'Thermal-Magnetic DC Circuit Breaker', category: 'Electrical', unitPrice: 1150.0, primarySupplierId: 'sup-10', criticalComponent: true, minLeadTimeDays: 2 },
+  { id: 'prod-15', sku: 'DSP-3600', name: 'Rugged Touch HMI Operator Screen', category: 'Displays', unitPrice: 4400.0, primarySupplierId: 'sup-6', criticalComponent: true, minLeadTimeDays: 3 },
+  { id: 'prod-16', sku: 'ANT-7200', name: 'Wideband NavIC / GPS Telematic Antenna', category: 'Telecommunications', unitPrice: 620.0, primarySupplierId: 'sup-9', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-17', sku: 'GSK-1900', name: 'Fluoropolymer Engine Gasket Seal', category: 'Enclosures', unitPrice: 145.0, primarySupplierId: 'sup-8', criticalComponent: false, minLeadTimeDays: 1 },
+  { id: 'prod-18', sku: 'CAP-5100', name: 'High-Voltage Multi-Layer Capacitor', category: 'Passive Components', unitPrice: 85.0, primarySupplierId: 'sup-1', criticalComponent: false, minLeadTimeDays: 2 },
+  { id: 'prod-19', sku: 'GTW-8300', name: 'CAN-Bus Telematics IoT Gateway', category: 'Networking', unitPrice: 4950.0, primarySupplierId: 'sup-3', criticalComponent: true, minLeadTimeDays: 2 },
+  { id: 'prod-20', sku: 'REG-2200', name: 'Linear Voltage Regulator (Automotive Grade)', category: 'Semiconductors', unitPrice: 320.0, primarySupplierId: 'sup-10', criticalComponent: false, minLeadTimeDays: 2 },
 ];
 
 export const INITIAL_CARRIERS: Carrier[] = [
-  { id: 'car-1', name: 'Apex Intermodal Express', code: 'AIE', transportMode: 'Intermodal', onTimeRating: 92, status: 'Active', contact: 'ops@apexintermodal.com' },
-  { id: 'car-2', name: 'SwiftLine Air Cargo', code: 'SAC', transportMode: 'Air', onTimeRating: 98, status: 'Active', contact: 'dispatch@swiftlinecargo.com' },
-  { id: 'car-3', name: 'Global Haulage Logistics', code: 'GHL', transportMode: 'Ground', onTimeRating: 84, status: 'Congested', contact: 'fleet@globalhaul.com' },
-  { id: 'car-4', name: 'Horizon Maritime Line', code: 'HML', transportMode: 'Ocean', onTimeRating: 79, status: 'Congested', contact: 'dockside@horizonmarine.com' },
-  { id: 'car-5', name: 'Vanguard Dedicated Freight', code: 'VDF', transportMode: 'Ground', onTimeRating: 96, status: 'Active', contact: 'priority@vanguardfreight.com' },
+  { id: 'car-1', name: 'Chola Express Logistics', code: 'CEL', transportMode: 'Ground', onTimeRating: 94, status: 'Active', contact: 'ops@cholaexpress.in' },
+  { id: 'car-2', name: 'Pandian Freight Lines', code: 'PFL', transportMode: 'Ground', onTimeRating: 91, status: 'Active', contact: 'fleet@pandianfreight.com' },
+  { id: 'car-3', name: 'TVS Supply Chain Solutions', code: 'TVS', transportMode: 'Intermodal', onTimeRating: 97, status: 'Active', contact: 'support@tvsscs.com' },
+  { id: 'car-4', name: 'Tuticorin Marine & Port Cargo', code: 'TMP', transportMode: 'Ocean', onTimeRating: 84, status: 'Congested', contact: 'vocberth@tuticorinport.gov.in' },
+  { id: 'car-5', name: 'ABT Parcel Cargo', code: 'ABT', transportMode: 'Ground', onTimeRating: 96, status: 'Active', contact: 'express@abtparcel.com' },
 ];
 
-// Helper to calculate stock status
 export const computeStockStatus = (available: number, reorder: number): StockStatus => {
   if (available <= 0) return 'Out of Stock';
   if (available < reorder) return 'Low Stock';
@@ -281,14 +282,9 @@ export const computeStockStatus = (available: number, reorder: number): StockSta
   return 'Optimal';
 };
 
-// Generate realistic inventory for all 20 products across 5 warehouses
 export const INITIAL_INVENTORY: InventoryItem[] = [
-  // Scenario A & B specific critical states:
-  // WH-North has a deficit for Lithium Module (prod-4) (Scenario B)
   { id: 'inv-1', productId: 'prod-4', warehouseId: 'wh-1', availableQty: 25, reservedQty: 300, requiredQty: 325, reorderLevel: 200, stockStatus: 'Low Stock', lastUpdated: '2026-10-28 09:30' },
-  // WH-West has EXCESS stock of prod-4! (Scenario B resolution)
   { id: 'inv-2', productId: 'prod-4', warehouseId: 'wh-2', availableQty: 1450, reservedQty: 150, requiredQty: 200, reorderLevel: 300, stockStatus: 'Excess', lastUpdated: '2026-10-28 10:15' },
-  // WH-North has deficit for MCU-9400 (prod-1) delayed by Global Chipsets (Scenario A)
   { id: 'inv-3', productId: 'prod-1', warehouseId: 'wh-1', availableQty: 10, reservedQty: 450, requiredQty: 480, reorderLevel: 250, stockStatus: 'Low Stock', lastUpdated: '2026-10-29 08:00' },
   { id: 'inv-4', productId: 'prod-1', warehouseId: 'wh-2', availableQty: 680, reservedQty: 200, requiredQty: 220, reorderLevel: 250, stockStatus: 'Optimal', lastUpdated: '2026-10-29 08:30' },
   { id: 'inv-5', productId: 'prod-7', warehouseId: 'wh-1', availableQty: 15, reservedQty: 180, requiredQty: 210, reorderLevel: 150, stockStatus: 'Low Stock', lastUpdated: '2026-10-29 07:45' },
@@ -319,28 +315,28 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
   { id: 'inv-30', productId: 'prod-7', warehouseId: 'wh-2', availableQty: 450, reservedQty: 100, requiredQty: 120, reorderLevel: 180, stockStatus: 'Optimal', lastUpdated: '2026-10-29 08:50' },
 ];
 
-// 50 Customer Orders
-const customerNames = [
-  'Tesla Gigafactory Texas',
-  'Lockheed Martin Space Systems',
-  'Siemens Healthineers MRI Lab',
-  'Honeywell Aerospace Division',
-  'Medtronic Surgical Robotics',
-  'General Electric Power Systems',
-  'Schneider Electric Infrastructure',
-  'Caterpillar Autonomous Mining',
-  'Boston Dynamics Fleet Ops',
-  'Raytheon Intelligence & Space',
-  'Apple Hardware Engineering',
-  'General Motors Orion Plant',
-  'Boeing Commercial Airplanes',
-  'Northrop Grumman Mission Systems',
-  'ABB Industrial Robotics',
-  'John Deere Precision Ag',
-  'Intel Foundry Services',
-  'Stellantis North America',
-  'Philips Healthcare Solutions',
-  'Rockwell Automation Systems',
+// Major Tamil Nadu Enterprise Clients & OEMs
+const tamilNaduCustomerNames = [
+  'Ashok Leyland Ennore Commercial Fleet (Chennai)',
+  'Hyundai Motor India Sriperumbudur Assembly',
+  'TVS Motor Company Hosur Plant',
+  'Saint-Gobain Glass India (Sriperumbudur)',
+  'Royal Enfield Vallam Vadagal Facility (Kanchipuram)',
+  'Caterpillar India Tiruvallur Facility',
+  'Murugappa TI Clean Mobility (Ambattur)',
+  'Apollo Tyres Oragadam Plant (Chennai)',
+  'Lucas TVS Padi Complex (Chennai)',
+  'Brakes India Sholinghur Hub (Ranipet)',
+  'Foxconn India Sriperumbudur Assembly',
+  'Tata Electronics Hosur Complex',
+  'LMW Textile Machinery Division (Coimbatore)',
+  'Sundram Fasteners Padi Complex',
+  'Bharat Heavy Electricals (BHEL Trichy)',
+  'Renault Nissan Automotive Oragadam Plant',
+  'Amara Raja Battery Industrial Unit',
+  'MRF Tyres Arakkonam Complex',
+  'Roots Industries Group (Coimbatore)',
+  'Hatsun Agro Product (Kanchipuram)',
 ];
 
 const customerTiers: CustomerTier[] = [
@@ -350,21 +346,19 @@ const customerTiers: CustomerTier[] = [
   'Standard',
 ];
 
-// Pre-compute 50 realistic customer orders
 export const INITIAL_ORDERS: CustomerOrder[] = Array.from({ length: 50 }, (_, i) => {
   const orderIndex = i + 1;
-  const orderNumber = `ORD-2026-${(1000 + orderIndex).toString()}`;
-  const customerName = customerNames[i % customerNames.length];
+  const orderNumber = `ORD-TN-2026-${(1000 + orderIndex).toString()}`;
+  const customerName = tamilNaduCustomerNames[i % tamilNaduCustomerNames.length];
   const customerTier = customerTiers[i % customerTiers.length];
-  
-  // Assign product deliberately: first 10 orders connect to disrupted prod-1 & prod-4 (Scenario A & B)
+
   let productId: string;
   let targetWarehouseId = 'wh-1';
   let priority: OrderPriority = 'Medium';
 
   if (orderIndex === 1) {
     productId = 'prod-1'; // MCU-9400
-    targetWarehouseId = 'wh-1'; // Chicago
+    targetWarehouseId = 'wh-1'; // Chennai Oragadam
     priority = 'High';
   } else if (orderIndex === 2) {
     productId = 'prod-1';
@@ -375,7 +369,7 @@ export const INITIAL_ORDERS: CustomerOrder[] = Array.from({ length: 50 }, (_, i)
     targetWarehouseId = 'wh-1';
     priority = 'High';
   } else if (orderIndex === 4) {
-    productId = 'prod-4'; // Lithium Power Module (Scenario B)
+    productId = 'prod-4'; // EV Battery Module
     targetWarehouseId = 'wh-1';
     priority = 'High';
   } else if (orderIndex === 5) {
@@ -397,47 +391,42 @@ export const INITIAL_ORDERS: CustomerOrder[] = Array.from({ length: 50 }, (_, i)
   const quantity = 25 + ((orderIndex * 7) % 180);
   const totalAmount = Math.round(quantity * prod.unitPrice);
 
-  // Delivery deadline relative to late October / early November 2026
   const dayOffset = (orderIndex % 14) + 1;
   const deadlineDate = new Date(2026, 9, 29 + dayOffset);
   const deliveryDeadline = deadlineDate.toISOString().split('T')[0];
   const orderDate = new Date(2026, 9, 15 + (orderIndex % 10)).toISOString().split('T')[0];
 
-  // Specific risk configuration for Scenario A & B
   let delayScore = 0;
   let inventoryScore = 15;
   let supplierRiskScore = 10;
   let customerPriorityScore = priority === 'High' ? 100 : priority === 'Medium' ? 60 : 25;
-  let riskReason = 'Nominal fulfillment parameters. On track.';
+  let riskReason = 'Nominal fulfillment parameters across Tamil Nadu corridor. On track.';
   let status: CustomerOrder['status'] = 'Pending';
 
   if (orderIndex <= 5) {
-    // Affected by Scenario A (prod-1 / prod-7) or Scenario B (prod-4)
     if (productId === 'prod-1' || productId === 'prod-7') {
-      delayScore = 85; // 3+ day port congestion delay
-      inventoryScore = 80; // Low stock in Chicago
-      supplierRiskScore = 75; // Global Chipsets Corp disrupted
-      riskReason = 'Port congestion at Global Chipsets Corp causing 3-day buffer depletion at Chicago Hub.';
+      delayScore = 85;
+      inventoryScore = 80;
+      supplierRiskScore = 75;
+      riskReason = 'NH 48 Walajapet Highway waterlogging holding up SIPCOT Sriperumbudur semiconductor convoy to Chennai Oragadam Hub.';
       status = 'At Risk';
     } else if (productId === 'prod-4') {
       delayScore = 70;
-      inventoryScore = 95; // Extreme shortage at WH-North Chicago
+      inventoryScore = 95;
       supplierRiskScore = 55;
-      riskReason = 'Warehouse stock deficit at Chicago Central Hub (25 units available vs 325 required).';
+      riskReason = 'Severe warehouse stock deficit at Chennai Oragadam Auto Hub (25 units available vs 325 reserved).';
       status = 'At Risk';
     }
   } else if (orderIndex % 7 === 0) {
     delayScore = 45;
     inventoryScore = 50;
     supplierRiskScore = 40;
-    riskReason = 'Carrier transit congestion approaching delivery deadline.';
+    riskReason = 'NH 44 Thoppur Ghats highway congestion slowing carrier trailer arrival.';
     status = 'At Risk';
   } else if (orderIndex % 3 === 0) {
     status = 'Shipped';
   }
 
-  // Calculate official formula:
-  // Risk Score = (0.35 × Delay Score) + (0.30 × Inventory Score) + (0.20 × Supplier Risk Score) + (0.15 × Customer Priority Score)
   const riskScore = Math.min(
     100,
     Math.round(
@@ -477,49 +466,198 @@ export const INITIAL_ORDERS: CustomerOrder[] = Array.from({ length: 50 }, (_, i)
   };
 });
 
-// 50 Shipments
+// Tamil Nadu Vehicle Fleet & Driver Telematics Factory
+const tnVehicleModels = [
+  'Ashok Leyland 2820-6x2 Heavy Hauler',
+  'Tata Signa 4825.TK 16-Wheeler Carrier',
+  'BharatBenz 3528C Heavy Transit Rig',
+  'Mahindra Blazo X 42 Multi-Axle Carrier',
+  'Eicher Pro 6035 Multimodal Express Rig',
+];
+
+const tnDrivers = [
+  { name: 'K. Senthil Kumar', license: 'TN-02-2016-0038192', phone: '+91 98401 23456', blood: 'O+', exp: 11 },
+  { name: 'R. Murugan', license: 'TN-38-2014-0091823', phone: '+91 94432 87610', blood: 'B+', exp: 14 },
+  { name: 'M. Karthikeyan', license: 'TN-59-2017-0044510', phone: '+91 98940 55123', blood: 'A+', exp: 9 },
+  { name: 'S. Anbarasan', license: 'TN-70-2018-0012904', phone: '+91 97890 12345', blood: 'AB+', exp: 8 },
+  { name: 'P. Saravanan', license: 'TN-45-2015-0078129', phone: '+91 99441 67890', blood: 'O+', exp: 12 },
+  { name: 'G. Velmurugan', license: 'TN-69-2013-0051287', phone: '+91 94421 98765', blood: 'B+', exp: 15 },
+  { name: 'V. Manikandan', license: 'TN-22-2019-0023419', phone: '+91 98412 34567', blood: 'A-', exp: 7 },
+  { name: 'T. Dhanasekaran', license: 'TN-30-2016-0089123', phone: '+91 97500 45678', blood: 'O-', exp: 10 },
+];
+
 export const INITIAL_SHIPMENTS: Shipment[] = Array.from({ length: 50 }, (_, i) => {
   const shipmentIndex = i + 1;
-  const shipmentNumber = `SHP-2026-${(3000 + shipmentIndex).toString()}`;
+  const shipmentNumber = `SHP-TN-2026-${(3000 + shipmentIndex).toString()}`;
   const order = INITIAL_ORDERS[i];
   const prod = INITIAL_PRODUCTS.find((p) => p.id === order.productId) || INITIAL_PRODUCTS[0];
   const supplierId = prod.primarySupplierId;
   const supplier = INITIAL_SUPPLIERS.find((s) => s.id === supplierId) || INITIAL_SUPPLIERS[0];
   const carrierId = INITIAL_CARRIERS[shipmentIndex % INITIAL_CARRIERS.length].id;
+  const carrier = INITIAL_CARRIERS.find((c) => c.id === carrierId) || INITIAL_CARRIERS[0];
   const destinationWarehouseId = order.targetWarehouseId;
   const destWarehouse = INITIAL_WAREHOUSES.find((w) => w.id === destinationWarehouseId) || INITIAL_WAREHOUSES[0];
 
   let status: Shipment['status'] = 'In Transit';
   let delayDays = 0;
   let isOverdue = false;
-  let lastCheckpoint = 'En route via Interstate Corridor';
+  let lastCheckpoint = 'En route via NH 48 / NH 544 Tamil Nadu Expressway';
+
+  const driver = tnDrivers[shipmentIndex % tnDrivers.length];
+  const vehicleModel = tnVehicleModels[shipmentIndex % tnVehicleModels.length];
+  const rtoCodes = ['04', '38', '59', '70', '69', '45', '22', '30'];
+  const rtoCode = rtoCodes[shipmentIndex % rtoCodes.length];
+  const vehicleReg = `TN-${rtoCode}-${String.fromCharCode(65 + (shipmentIndex % 26))}${String.fromCharCode(66 + (shipmentIndex % 25))}-${(1000 + (shipmentIndex * 137) % 8999)}`;
+
+  let progressPercent = 35 + ((shipmentIndex * 17) % 55);
+  let speedKmph = 58;
+  let currentLocationName = 'NH 48 Walajapet Toll Plaza, Ranipet District';
+  let currentLat = 12.9238;
+  let currentLng = 79.3241;
 
   if (order.status === 'At Risk') {
     if (supplier.status === 'Disrupted') {
       status = 'Delayed';
       delayDays = 3;
       isOverdue = true;
-      lastCheckpoint = 'Held at Port of Kaohsiung Container Berth 4';
+      lastCheckpoint = 'Walajapet Highway Inundation Blockade, NH 48 (Ranipet)';
+      progressPercent = 42;
+      speedKmph = 0;
+      currentLocationName = 'NH 48 Km 114 Walajapet Bypass (Waterlogging / Traffic Bottleneck)';
+      currentLat = 12.9351;
+      currentLng = 79.3512;
     } else {
       status = 'Delayed';
       delayDays = 2;
       isOverdue = true;
-      lastCheckpoint = 'Customs Inspection Hold, Terminal 2';
+      lastCheckpoint = 'NH 44 Thoppur Toll Plaza Hold, Dharmapuri';
+      progressPercent = 55;
+      speedKmph = 18;
+      currentLocationName = 'NH 44 Thoppur Ghat Checkpoint, Dharmapuri';
+      currentLat = 12.0167;
+      currentLng = 78.1167;
     }
   } else if (shipmentIndex % 6 === 0) {
     status = 'Delivered';
-    lastCheckpoint = `Delivered to Dock 4, ${destWarehouse.name}`;
+    lastCheckpoint = `Unloaded & Inwarded at Dock 3, ${destWarehouse.name}`;
+    progressPercent = 100;
+    speedKmph = 0;
+    currentLocationName = `${destWarehouse.name}, ${destWarehouse.city}`;
   } else if (shipmentIndex % 5 === 0) {
     status = 'Dispatched';
-    lastCheckpoint = `Departed origin facility: ${supplier.location}`;
+    lastCheckpoint = `Departed dispatch yard: ${supplier.name}, ${supplier.location}`;
+    progressPercent = 15;
+    speedKmph = 45;
+    currentLocationName = `SIPCOT Industrial Expressway Entrance, Sriperumbudur`;
   } else if (shipmentIndex % 4 === 0) {
     status = 'Processing';
-    lastCheckpoint = 'Palletizing & Export Documentation';
+    lastCheckpoint = 'Cargo Palletizing & E-Way Bill Verification';
+    progressPercent = 5;
+    speedKmph = 0;
+    currentLocationName = `Consignor Loading Dock: ${supplier.name}`;
   }
 
   const expDate = new Date(2026, 9, 28 + (shipmentIndex % 10));
   const expectedDelivery = expDate.toISOString().split('T')[0];
   const actualDelivery = status === 'Delivered' ? new Date(2026, 9, 27).toISOString().split('T')[0] : undefined;
+
+  // Realistic Route Checkpoints across Tamil Nadu Highway Corridor
+  const checkpoints: RouteCheckpoint[] = [
+    {
+      id: `chk-1-${shipmentIndex}`,
+      name: 'Origin Dispatch Bay',
+      location: supplier.location,
+      highway: 'State Highway / SIPCOT Access',
+      plannedTime: '06:00 AM',
+      actualTime: '06:15 AM',
+      status: 'completed',
+      tollPlazaOrDepot: 'Supplier Logistics Yard',
+      distanceKm: 0,
+    },
+    {
+      id: `chk-2-${shipmentIndex}`,
+      name: 'Sriperumbudur Toll Plaza',
+      location: 'Sriperumbudur Outer, NH 48',
+      highway: 'NH 48 (Chennai - Bengaluru Corridor)',
+      plannedTime: '07:45 AM',
+      actualTime: '07:50 AM',
+      status: 'completed',
+      tollPlazaOrDepot: 'NHAI FASTag Toll Plaza 1',
+      distanceKm: 38,
+    },
+    {
+      id: `chk-3-${shipmentIndex}`,
+      name: 'Walajapet Toll Plaza',
+      location: 'Ranipet District, NH 48',
+      highway: 'NH 48 Express Highway',
+      plannedTime: '09:30 AM',
+      actualTime: status === 'Delayed' ? '12:45 PM (Held)' : '09:40 AM',
+      status: status === 'Delayed' ? 'in_progress' : progressPercent >= 45 ? 'completed' : 'upcoming',
+      tollPlazaOrDepot: 'NHAI FASTag Toll Plaza 2',
+      distanceKm: 104,
+    },
+    {
+      id: `chk-4-${shipmentIndex}`,
+      name: 'Krishnagiri / Salem Junction Toll',
+      location: 'Krishnagiri Interchange, NH 44',
+      highway: 'NH 44 North-South Corridor',
+      plannedTime: '01:30 PM',
+      actualTime: progressPercent >= 70 ? '01:45 PM' : undefined,
+      status: progressPercent >= 70 ? 'completed' : progressPercent >= 50 ? 'in_progress' : 'upcoming',
+      tollPlazaOrDepot: 'Krishnagiri Transit Station',
+      distanceKm: 245,
+    },
+    {
+      id: `chk-5-${shipmentIndex}`,
+      name: 'Destination Intake Hub',
+      location: destWarehouse.city,
+      highway: 'Inland Logistics Link',
+      plannedTime: '06:00 PM',
+      actualTime: status === 'Delivered' ? '05:30 PM' : undefined,
+      status: status === 'Delivered' ? 'completed' : 'upcoming',
+      tollPlazaOrDepot: `${destWarehouse.name} Dock`,
+      distanceKm: 420,
+    },
+  ];
+
+  const telemetry: VehicleDriverTelemetry = {
+    vehicleNumber: vehicleReg,
+    vehicleType: vehicleModel,
+    vehicleModelYear: 2023,
+    transporterName: carrier.name,
+    gpsDeviceId: `GPS-TN-${7000 + shipmentIndex}`,
+    speedKmph: status === 'Delivered' ? 0 : speedKmph,
+    fuelPercent: 82 - ((shipmentIndex * 7) % 35),
+    engineTempCelsius: 82 + (shipmentIndex % 6),
+    batteryVoltage: 24.3,
+    odometerKm: 124500 + shipmentIndex * 312,
+    gpsStatus: 'Active NavIC/GPS',
+    lastPingTime: '2 mins ago (Live AIS 140 Telematics)',
+    driverName: driver.name,
+    driverLicense: driver.license,
+    driverPhone: driver.phone,
+    driverExperienceYears: driver.exp,
+    driverBloodGroup: driver.blood,
+    dutyHoursToday: 4.2,
+    safetyScore: 97 - (shipmentIndex % 5),
+    originHub: `${supplier.name} (${supplier.location.split(',')[0]})`,
+    destinationHub: `${destWarehouse.name} (${destWarehouse.city.split(',')[0]})`,
+    highwayCorridor: 'NH 48 & NH 544 Golden Quadrilateral Tamil Nadu Spur',
+    totalDistanceKm: 420,
+    coveredDistanceKm: Math.round(420 * (progressPercent / 100)),
+    progressPercent,
+    currentLat,
+    currentLng,
+    currentLocationName,
+    checkpoints,
+    disruptionAlert: status === 'Delayed' ? {
+      active: true,
+      location: 'NH 48 Walajapet Highway Section (Ranipet)',
+      issue: 'Waterlogging & Tanker breakdown causing heavy freight stall (+3.5h delay)',
+      delayHours: 3.5,
+      suggestedDetour: 'Divert via SH-116 Arcot-Cheyyar-Polur corridor to rejoin NH 44 at Tiruvannamalai.',
+    } : undefined,
+  };
 
   return {
     id: `shp-${shipmentIndex}`,
@@ -535,46 +673,46 @@ export const INITIAL_SHIPMENTS: Shipment[] = Array.from({ length: 50 }, (_, i) =
     actualDelivery,
     status,
     delayDays,
-    trackingNumber: `TRK-889-${(50000 + shipmentIndex * 13).toString()}`,
+    trackingNumber: `TRK-TN-${(50000 + shipmentIndex * 19).toString()}`,
     lastCheckpoint,
     isOverdue,
+    telemetry,
   };
 });
 
-// Pre-built Disruptions (Scenario A and Scenario B)
 export const INITIAL_DISRUPTIONS: Disruption[] = [
   {
     id: 'dis-1',
-    disruptionNumber: 'DIS-2026-081',
+    disruptionNumber: 'DIS-TN-2026-081',
     type: 'Supplier Delay',
     targetType: 'supplier',
     targetId: 'sup-1',
-    targetName: 'Global Chipsets Corp (Taiwan)',
+    targetName: 'SIPCOT High-Tech Semiconductors (Sriperumbudur)',
     productId: 'prod-1',
     delayDays: 3,
     affectedQuantity: 650,
     severity: 'Critical',
-    description: 'Major berth congestion and typhoon aftermath at Port of Kaohsiung holding up outbound semiconductor containers by 3+ days.',
+    description: 'NH 48 Walajapet-Kanchipuram highway corridor inundation and chemical tanker overturn blocking outbound multi-axle freight trailers carrying automotive microcontrollers to Coimbatore and Madurai.',
     reportedAt: '2026-10-28 07:15',
     status: 'Active',
     affectedProductIds: ['prod-1', 'prod-7', 'prod-18'],
-    affectedWarehouseIds: ['wh-1', 'wh-4'],
+    affectedWarehouseIds: ['wh-1', 'wh-2'],
     affectedShipmentIds: ['shp-1', 'shp-2', 'shp-3'],
     affectedOrderIds: ['ord-1', 'ord-2', 'ord-3'],
     mitigationPlanId: 'plan-1',
   },
   {
     id: 'dis-2',
-    disruptionNumber: 'DIS-2026-082',
+    disruptionNumber: 'DIS-TN-2026-082',
     type: 'Inventory Shortage',
     targetType: 'warehouse',
     targetId: 'wh-1',
-    targetName: 'Chicago Central Logistics Hub',
+    targetName: 'Chennai Oragadam Auto & Electronics Hub',
     productId: 'prod-4',
     delayDays: 4,
     affectedQuantity: 300,
     severity: 'Major',
-    description: 'Chicago Hub experienced sudden spike in surgical robotics and high-capacity battery draw. Available inventory fell to 25 units vs 325 required.',
+    description: 'Chennai Oragadam Auto Hub experienced surge demand from Hyundai Motor & Royal Enfield EV assembly lines. Available inventory fell to 25 units vs 325 required.',
     reportedAt: '2026-10-29 08:45',
     status: 'Active',
     affectedProductIds: ['prod-4'],
@@ -585,23 +723,22 @@ export const INITIAL_DISRUPTIONS: Disruption[] = [
   },
 ];
 
-// Pre-built Recovery Plans
 export const INITIAL_RECOVERY_PLANS: RecoveryPlan[] = [
   {
     id: 'plan-1',
-    planNumber: 'REC-PLAN-401',
+    planNumber: 'REC-TN-401',
     disruptionId: 'dis-1',
     recoveryType: 'Alternative Supplier',
-    recommendedAction: 'Procure 450 units of MCU-9400 from Apex Microelectronics (South Korea) with expedited air freight.',
-    reason: 'Global Chipsets Corp facing 3-day port hold. Apex Microelectronics has verified stock of 700 units at 91% reliability score, bridging the delivery gap before customer penalties.',
+    recommendedAction: 'Procure 450 units of MCU-9400 from Kovai Precision Microelectronics (Coimbatore) with expedited transport via Pandian Freight Lines.',
+    reason: 'SIPCOT Sriperumbudur facing 3-day NH 48 highway blockage. Kovai Precision Microelectronics has verified stock of 700 units at 92% reliability score, bridging delivery before assembly downtime penalties.',
     affectedOrderIds: ['ord-1', 'ord-2', 'ord-3'],
     requiredQty: 450,
     availableQty: 700,
-    estimatedCost: 8200,
-    expectedRecoveryDays: 2,
-    expectedRiskReductionPercent: 68,
+    estimatedCost: 185000, // INR ₹1,85,000
+    expectedRecoveryDays: 1,
+    expectedRiskReductionPercent: 78,
     feasibility: 'High',
-    requestedBy: 'Elena Rostova (Logistics Manager)',
+    requestedBy: 'K. Senthil Kumar (Logistics Manager)',
     requestedAt: '2026-10-29 09:15',
     status: 'Pending',
     details: {
@@ -611,22 +748,22 @@ export const INITIAL_RECOVERY_PLANS: RecoveryPlan[] = [
   },
   {
     id: 'plan-2',
-    planNumber: 'REC-PLAN-402',
+    planNumber: 'REC-TN-402',
     disruptionId: 'dis-2',
     recoveryType: 'Inventory Redistribution',
-    recommendedAction: 'Transfer 300 units of Lithium-Ion 48V Power Modules from WH-West (Reno) to WH-North (Chicago Hub) via Vanguard Express.',
-    reason: 'WH-West currently has 1,450 available units (excess stock above reorder buffer of 300). Transferring 300 units immediately cures Chicago Hub deficit with zero new manufacturing lead time.',
+    recommendedAction: 'Inter-warehouse transfer of 300 units of EV Lithium-Ion 48V Power Modules from Coimbatore Peelamedu Hub (wh-2) to Chennai Oragadam Hub (wh-1) via ABT Parcel Cargo Express.',
+    reason: 'Coimbatore Peelamedu Hub has 1,450 units excess stock above its 300-unit safety buffer. Transfer via NH 544 & NH 48 overnight haul cures Chennai Hub deficit with zero new supplier manufacturing lead time.',
     affectedOrderIds: ['ord-4', 'ord-5'],
     requiredQty: 300,
     availableQty: 1450,
-    estimatedCost: 3450,
+    estimatedCost: 85000, // INR ₹85,000
     expectedRecoveryDays: 1,
-    expectedRiskReductionPercent: 82,
+    expectedRiskReductionPercent: 86,
     feasibility: 'High',
-    requestedBy: 'Elena Rostova (Logistics Manager)',
+    requestedBy: 'K. Senthil Kumar (Logistics Manager)',
     requestedAt: '2026-10-29 10:30',
     status: 'Approved',
-    approvedBy: 'David Chen (Procurement Approver)',
+    approvedBy: 'Ananya Raman (VP Procurement)',
     approvedAt: '2026-10-29 11:15',
     details: {
       sourceWarehouseId: 'wh-2',
@@ -640,8 +777,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-1',
     type: 'disruption',
-    title: 'Critical Supplier Disruption Detected',
-    message: 'Global Chipsets Corp (SUP-1001) reported 3-day container delay at Port of Kaohsiung. 3 customer orders at high delivery risk.',
+    title: 'Critical Corridor Disruption: NH 48 Ranipet Segment',
+    message: 'SIPCOT High-Tech Semiconductors (Sriperumbudur) outbound freight halted at Walajapet bypass. 3 OEM orders at high delivery risk.',
     severity: 'critical',
     timestamp: '15 minutes ago',
     read: false,
@@ -650,8 +787,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-2',
     type: 'shortage',
-    title: 'Severe Stock Deficit at Chicago Hub',
-    message: 'Lithium-Ion Power Module (prod-4) in WH-North fell below safety stock (25 avail vs 325 reserved).',
+    title: 'Severe EV Battery Deficit at Chennai Oragadam Hub',
+    message: 'EV Lithium-Ion Power Module (prod-4) in WH-TN-CHN fell below buffer (25 avail vs 325 reserved for Ashok Leyland / Hyundai).',
     severity: 'warning',
     timestamp: '42 minutes ago',
     read: false,
@@ -660,8 +797,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-3',
     type: 'approval',
-    title: 'Recovery Plan Approved by David Chen',
-    message: 'Plan REC-PLAN-402 (Inventory Redistribution Reno → Chicago) approved. Ready for execution dispatch.',
+    title: 'Recovery Plan Approved by Ananya Raman',
+    message: 'Plan REC-TN-402 (Coimbatore → Chennai Oragadam transfer via ABT Parcel Cargo) authorized. Ready for gate dispatch.',
     severity: 'info',
     timestamp: '1 hour ago',
     read: false,
@@ -670,8 +807,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-4',
     type: 'risk',
-    title: 'High-Risk Order Alert: Tesla Gigafactory',
-    message: 'Order ORD-2026-1001 risk score elevated to 78/100 due to delayed microcontroller shipment.',
+    title: 'High-Risk Order Alert: Ashok Leyland Ennore Fleet',
+    message: 'Order ORD-TN-2026-1001 delivery risk elevated to 78/100 due to delayed NH 48 microcontroller trailer.',
     severity: 'critical',
     timestamp: '2 hours ago',
     read: true,
@@ -680,8 +817,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-5',
     type: 'executed',
-    title: 'Previous Batch Recovery Completed',
-    message: 'Stock transfer REC-PLAN-399 completed successfully. 12 orders returned to nominal on-time delivery.',
+    title: 'Madurai Kappalur Hub Transfer Executed',
+    message: 'Stock transfer REC-TN-399 completed. 14 Tamil Nadu customer orders restored to nominal delivery schedule.',
     severity: 'success',
     timestamp: 'Yesterday at 17:40',
     read: true,
@@ -694,9 +831,9 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     id: 'audit-1',
     timestamp: '2026-10-29 11:15:22',
     action: 'Plan Approved',
-    user: 'David Chen',
+    user: 'Ananya Raman',
     role: 'Procurement Approver',
-    details: 'Authorized Plan REC-PLAN-402: Transfer 300 units Lithium Power Modules (WH-West → WH-North) with estimated cost $3,450.',
+    details: 'Authorized Plan REC-TN-402: Transfer 300 units EV Lithium Power Modules (Coimbatore Hub → Chennai Oragadam Hub) via ABT Parcel Cargo.',
     entityType: 'Plan',
     entityId: 'plan-2',
   },
@@ -704,9 +841,9 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     id: 'audit-2',
     timestamp: '2026-10-29 10:30:11',
     action: 'Plan Generated',
-    user: 'Elena Rostova',
+    user: 'K. Senthil Kumar',
     role: 'Logistics Manager',
-    details: 'Generated AI Recovery Plan REC-PLAN-402 for Chicago Hub inventory shortage.',
+    details: 'Generated AI Recovery Plan REC-TN-402 for Chennai Oragadam inventory deficit.',
     entityType: 'Plan',
     entityId: 'plan-2',
   },
@@ -714,9 +851,9 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     id: 'audit-3',
     timestamp: '2026-10-29 09:15:00',
     action: 'Plan Generated',
-    user: 'Elena Rostova',
+    user: 'K. Senthil Kumar',
     role: 'Logistics Manager',
-    details: 'Created Plan REC-PLAN-401 for Global Chipsets Corp delay.',
+    details: 'Created Plan REC-TN-401 for SIPCOT Sriperumbudur NH 48 highway bottleneck.',
     entityType: 'Plan',
     entityId: 'plan-1',
   },
@@ -724,9 +861,9 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     id: 'audit-4',
     timestamp: '2026-10-29 08:45:19',
     action: 'Disruption Logged',
-    user: 'Marcus Vance',
+    user: 'R. Muruganathan',
     role: 'Warehouse Operator',
-    details: 'Logged warehouse stock shortage DIS-2026-082 at Chicago Central Hub.',
+    details: 'Logged warehouse stock shortage DIS-TN-2026-082 at Chennai Oragadam Hub.',
     entityType: 'Disruption',
     entityId: 'dis-2',
   },
@@ -734,9 +871,9 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     id: 'audit-5',
     timestamp: '2026-10-28 07:15:44',
     action: 'Disruption Logged',
-    user: 'System Sensor Feed',
+    user: 'AIS-140 GPS Sensor Feed',
     role: 'Automated Monitor',
-    details: 'Automated port telemetry detected 3-day Kaohsiung container dwell time (DIS-2026-081).',
+    details: 'Automated highway telematics detected 3.5h standstill on NH 48 Walajapet corridor (DIS-TN-2026-081).',
     entityType: 'Disruption',
     entityId: 'dis-1',
   },

@@ -119,6 +119,63 @@ export type ShipmentStatus =
   | 'Delivered'
   | 'Cancelled';
 
+export interface RouteCheckpoint {
+  id: string;
+  name: string;
+  location: string;
+  highway?: string;
+  plannedTime: string;
+  actualTime?: string;
+  status: 'completed' | 'in_progress' | 'upcoming' | 'pending';
+  tollPlazaOrDepot: string;
+  distanceKm?: number;
+  lat?: number;
+  lng?: number;
+}
+
+export interface VehicleDriverTelemetry {
+  vehicleNumber: string; // e.g. "TN-04-BJ-8821"
+  vehicleType: string; // e.g. "Ashok Leyland 2820-6x2 Multi-Axle Hauler"
+  vehicleModelYear: number;
+  transporterName: string; // e.g. "TVS Supply Chain Logistics"
+  gpsDeviceId: string;
+  speedKmph: number;
+  fuelPercent: number;
+  engineTempCelsius: number;
+  batteryVoltage: number;
+  odometerKm: number;
+  gpsStatus: 'Active NavIC/GPS' | 'Warning' | 'Offline';
+  lastPingTime: string;
+  
+  // Driver details
+  driverName: string; // e.g. "K. Senthil Kumar"
+  driverLicense: string; // e.g. "TN-02-2016-0038192"
+  driverPhone: string; // e.g. "+91 98401 23456"
+  driverExperienceYears: number;
+  driverBloodGroup: string;
+  dutyHoursToday: number;
+  safetyScore: number; // 0 - 100
+  
+  // Route & Highway details
+  originHub: string;
+  destinationHub: string;
+  highwayCorridor: string; // e.g. "NH 48 & NH 544 Express Corridor"
+  totalDistanceKm: number;
+  coveredDistanceKm: number;
+  progressPercent: number;
+  currentLat: number;
+  currentLng: number;
+  currentLocationName: string;
+  checkpoints: RouteCheckpoint[];
+  disruptionAlert?: {
+    active: boolean;
+    location: string;
+    issue: string;
+    delayHours: number;
+    suggestedDetour: string;
+  };
+}
+
 export interface Shipment {
   id: string;
   shipmentNumber: string;
@@ -136,6 +193,7 @@ export interface Shipment {
   trackingNumber: string;
   lastCheckpoint: string;
   isOverdue: boolean;
+  telemetry?: VehicleDriverTelemetry;
 }
 
 export type OrderPriority = 'High' | 'Medium' | 'Low';
@@ -226,7 +284,7 @@ export interface AuditLog {
 }
 
 export interface DataProvenance {
-  sourceType: 'Demonstration Dataset' | 'Imported Dataset' | 'Connected Operational Source';
+  sourceType: 'Demonstration Dataset' | 'Imported Dataset' | 'Connected Operational Source' | 'Empty Clean Workspace';
   lastImportedAt?: string;
   recordCount: number;
   sourceFile?: string;
